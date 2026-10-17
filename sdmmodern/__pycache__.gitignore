@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+sdm.db*
+sdm-before-shared.db
+window-profile/
+archive.log
