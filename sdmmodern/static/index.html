@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sim Data Manager 0.9</title>
+<title>Sim Data Manager 0.9.1</title>
 <style>
 :root{--bg:#f4f5f7;--panel:#fff;--ink:#1c2330;--mute:#667085;--line:#d8dce3;--accent:#1f5fbf;--accent-ink:#fff;--hi:#e8f0fc;
 --dirt:#f6ecdc;--turf:#e3f1e0;--poly:#e7e4f3;--fem:#fbe0ea;--male:#dcebfa;--slow:#8a5a00;--bad:#b42318;--good:#18794e}
@@ -700,7 +700,7 @@ html[data-theme="glass"][data-glow="studio"] body{background-color:#061a33}
     <button data-act="tracks">Track Codes…</button>
     <button data-act="compact">Shrink Database</button>
     <button data-act="simreset">Show the sim-site login reminder again</button><hr><button data-act="dbinfo">Database Summary…</button></div></div>
-  <div class="menu"><button>Help</button><div class="drop"><button data-act="help">How to Use This</button><button data-act="update">Check for Updates</button><button data-act="about">About Sim Data Manager</button></div></div>
+  <div class="menu"><button>Help</button><div class="drop"><button data-act="help">How to Use This</button><button data-act="update">Check for Updates</button><button data-act="about">About Sim Data Manager</button><button data-act="exit">Exit Sim Data Manager</button></div></div>
   <a id="datachip" class="datachip" href="http://denovo.eu5.net/SSSarch.php" target="_blank" rel="noopener" style="margin-left:auto" title="The dates your race data covers. Click to open the denovo archive in your browser and check whether a newer pack is out.">Race data</a>
   <button type="button" id="panelbtn" title="Show or hide the search box to make room for results">Panel</button>
   <button type="button" id="themebtn" title="Choose a theme">Theme</button>
@@ -1370,7 +1370,10 @@ const actions={
    <div class="small" style="margin-top:8px">Saved at:<br><b style="word-break:break-all;user-select:all">${esc(i.db_path)}</b></div>
    <div style="max-height:240px;overflow:auto;margin-top:8px"><table class="mini"><tr><th>Date</th><th class="num">Races</th><th class="num">Runners</th></tr>${i.weeks.map(w=>`<tr><td>${w.date}</td><td class="num">${w.races}</td><td class="num">${w.entries}</td></tr>`).join('')}</table></div><div class="btns"><button class="primary" onclick="closeDlg()">Close</button></div>`)},
  update(){UPD.manual()},
- about(){dialog(`<h3>Sim Data Manager <span class="small" style="font-weight:400">version 0.9</span></h3><div class="small">A <a href="https://wilderlabs.studio" target="_blank" rel="noopener">Wilder Labs Studio</a> product. <a href="https://wilderlabs.studio" target="_blank" rel="noopener">wilderlabs.studio</a></div><div class="small" style="margin-top:8px">A private research tool for the horse racing sim. It keeps every race in a database on this computer, so you can look up horses, trainers and races, and compare speed figures. Nothing leaves your computer except downloads of new race data, the public race schedule, the Find Sires table and the master stable of a trainer (one request per stable group, then saved).</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
+ exit(){dialog(`<h3>Exit Sim Data Manager?</h3><div class="small">This closes the program. A download that is still running will stop; you can start it again later and it picks up where it left off.</div><div class="btns"><button type="button" onclick="closeDlg()">Cancel</button><button type="button" class="primary" id="exgo">Exit</button></div>`);
+  $('#exgo').onclick=async()=>{try{await api('/api/quit',{method:'POST',headers:UPD.H,body:'{}'})}catch(e){}
+   document.body.innerHTML='<p style="padding:30px;font:16px sans-serif">Sim Data Manager has closed. You can close this window.</p>'}},
+ about(){dialog(`<h3>Sim Data Manager <span class="small" style="font-weight:400">version 0.9.1</span></h3><div class="small">A <a href="https://wilderlabs.studio" target="_blank" rel="noopener">Wilder Labs Studio</a> product. <a href="https://wilderlabs.studio" target="_blank" rel="noopener">wilderlabs.studio</a></div><div class="small" style="margin-top:8px">A private research tool for the horse racing sim. It keeps every race in a database on this computer, so you can look up horses, trainers and races, and compare speed figures. Nothing leaves your computer except downloads of new race data, the public race schedule, the Find Sires table and the master stable of a trainer (one request per stable group, then saved).</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
  help(){dialog(`<h3>How to Use This</h3><div class="small"><b>Searching.</b> Pick Horse, Trainer or Race, type a name or ID, and press Search. Click any row for details in the side panel.<br><br><b>New data.</b> Open <b>Data &rarr; Get New Race Data</b> to download the latest weekly packs. The program also checks once when it starts.<br><br><b>Your stables.</b> Type your stable name in the My stables box and the program finds all of your stables for you.<br><br><b>Saving.</b> Use <b>Data &rarr; Save Results as CSV</b> to open the current list in a spreadsheet.</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
  print(){if(!rows.length)return alertBox('Nothing to print yet. Run a search first.');print()},
  export(){if(!rows.length)return alertBox('No data found. You must run a search before exporting.');
@@ -1386,6 +1389,7 @@ async function autoBanner(){try{const s=await api('/api/archive/status');const a
   }catch(e){}}
 setInterval(autoBanner,4000);
 refreshInfo();setInterval(()=>fetch('/api/ping').catch(()=>{}),4000);fetch('/api/ping');
+addEventListener('pagehide',()=>{try{navigator.sendBeacon('/api/bye')}catch(e){}});
 
 // ---- resizable side panel
 (function(){

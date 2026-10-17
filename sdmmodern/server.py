@@ -27,6 +27,7 @@ class App:
         self.share_job = None
         self.update = None
         self.quit = False
+        self.bye_at = 0
         self.packs_cache = (0, [])
 
 
@@ -306,6 +307,14 @@ def make_handler(app):
                         app.pull = SD.Pull(app, link, bool(a.get('force'))).start()
                         return self._send({'ok': True})
                     return self._send({'error': 'Unknown request.'}, 404)
+                if u.path == '/api/bye':                   # the window is closing (or reloading); a reload pings again within seconds
+                    app.bye_at = time.time()
+                    return self._send({'ok': True})
+                if u.path == '/api/quit':
+                    if self.headers.get('X-SDM') != '1':
+                        return self._send({'error': 'Request refused.'}, 403)
+                    app.quit = True
+                    return self._send({'ok': True})
                 if u.path == '/api/archive/cancel':
                     if app.job: app.job.cancel()
                     return self._send({'ok': True})
@@ -425,8 +434,14 @@ def run(db_path=None, open_window=True, port=0):
     try:
         while True:
             time.sleep(1)
-            if app.quit or (app.seen_ping and time.time() - app.last_ping > 180):
-                break       # window closed, or the user asked to close after an update
+            now = time.time()
+            busy = any(j and j.state.get('running') for j in (app.job, app.pull, app.share_job, app.update))
+            if app.quit:
+                break       # the user chose Exit, or closed the app after an update
+            if app.seen_ping and not busy and app.bye_at and now - app.bye_at > 20 and app.last_ping < app.bye_at:
+                break       # the window was closed and did not come back within 20 seconds
+            if app.seen_ping and now - app.last_ping > 180:
+                break       # no window for 3 minutes (a download that was running is stopped)
     except KeyboardInterrupt:
         pass
     srv.shutdown()

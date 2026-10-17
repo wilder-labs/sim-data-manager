@@ -9,7 +9,7 @@ PAGE = BASE + 'SSSarch.php'
 PACKDIR = BASE + 'SSS/'
 DRIVE_LINK = ''      # Google Drive folder that holds the weekly packs; set by configure()
 DRIVE_IDS = {}       # week -> Drive file id, filled by list_packs()      # folder the pack links point to; set from the page's own links by list_packs()
-UA = 'SimDataManager/0.9 (personal use; weekly pack fetch)'
+UA = 'SimDataManager/0.9.1 (personal use; weekly pack fetch)'
 MISS_LIMIT = 60            # this many 'not found' answers in a row, with nothing downloaded yet, means the archive is down
 FIRST_2020_PACK = 7838     # covers Dec 30 2019 - Jan 5 2020, the first pack that reaches into 2020
 
