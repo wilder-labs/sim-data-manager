@@ -43,7 +43,7 @@ class ShareJob:
         try:
             check_dest(self.dest)
             os.makedirs(self.work, exist_ok=True)
-            need = int(os.path.getsize(self.db_path) * 1.3) + (50 << 20)
+            need = int(os.path.getsize(self.db_path) * 2.4) + (50 << 20)      # the copy, plus room to compact it
             if _free(self.work) < need:
                 raise OSError('Not enough free disk space for the working copy (about %d MB needed).' % (need >> 20))
             for f in (tmpdb, tmpdb + '-wal', tmpdb + '-shm', tmpdb + '-journal', tmpzip):
@@ -66,6 +66,8 @@ class ShareJob:
                 dst.execute('DROP TABLE IF EXISTS "%s"' % t)
             dst.execute('DELETE FROM settings WHERE k NOT IN (%s)' % ','.join('?' * len(KEEP_SETTINGS)), KEEP_SETTINGS)
             dst.commit()
+            self._set('Compacting the copy', 41)
+            dst.execute('VACUUM')                      # without this, the deleted private tables can still sit in unused pages of the file
             dst.execute('PRAGMA journal_mode=DELETE')
             weeks = dst.execute('SELECT COALESCE(MAX(week),0), COALESCE(SUM(entries),0) FROM weeks').fetchone()
             dst.close()

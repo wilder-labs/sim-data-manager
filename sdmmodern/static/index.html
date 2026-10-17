@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sim Data Manager 0.9.1</title>
+<title>Sim Data Manager 0.9.2</title>
 <style>
 :root{--bg:#f4f5f7;--panel:#fff;--ink:#1c2330;--mute:#667085;--line:#d8dce3;--accent:#1f5fbf;--accent-ink:#fff;--hi:#e8f0fc;
 --dirt:#f6ecdc;--turf:#e3f1e0;--poly:#e7e4f3;--fem:#fbe0ea;--male:#dcebfa;--slow:#8a5a00;--bad:#b42318;--good:#18794e}
@@ -1373,7 +1373,7 @@ const actions={
  exit(){dialog(`<h3>Exit Sim Data Manager?</h3><div class="small">This closes the program. A download that is still running will stop; you can start it again later and it picks up where it left off.</div><div class="btns"><button type="button" onclick="closeDlg()">Cancel</button><button type="button" class="primary" id="exgo">Exit</button></div>`);
   $('#exgo').onclick=async()=>{try{await api('/api/quit',{method:'POST',headers:UPD.H,body:'{}'})}catch(e){}
    document.body.innerHTML='<p style="padding:30px;font:16px sans-serif">Sim Data Manager has closed. You can close this window.</p>'}},
- about(){dialog(`<h3>Sim Data Manager <span class="small" style="font-weight:400">version 0.9.1</span></h3><div class="small">A <a href="https://wilderlabs.studio" target="_blank" rel="noopener">Wilder Labs Studio</a> product. <a href="https://wilderlabs.studio" target="_blank" rel="noopener">wilderlabs.studio</a></div><div class="small" style="margin-top:8px">A private research tool for the horse racing sim. It keeps every race in a database on this computer, so you can look up horses, trainers and races, and compare speed figures. Nothing leaves your computer except downloads of new race data, the public race schedule, the Find Sires table and the master stable of a trainer (one request per stable group, then saved).</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
+ about(){dialog(`<h3>Sim Data Manager <span class="small" style="font-weight:400">version 0.9.2</span></h3><div class="small">A <a href="https://wilderlabs.studio" target="_blank" rel="noopener">Wilder Labs Studio</a> product. <a href="https://wilderlabs.studio" target="_blank" rel="noopener">wilderlabs.studio</a></div><div class="small" style="margin-top:8px">A private research tool for the horse racing sim. It keeps every race in a database on this computer, so you can look up horses, trainers and races, and compare speed figures. Nothing leaves your computer except downloads of new race data, the public race schedule, the Find Sires table and the master stable of a trainer (one request per stable group, then saved).</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
  help(){dialog(`<h3>How to Use This</h3><div class="small"><b>Searching.</b> Pick Horse, Trainer or Race, type a name or ID, and press Search. Click any row for details in the side panel.<br><br><b>New data.</b> Open <b>Data &rarr; Get New Race Data</b> to download the latest weekly packs. The program also checks once when it starts.<br><br><b>Your stables.</b> Type your stable name in the My stables box and the program finds all of your stables for you.<br><br><b>Saving.</b> Use <b>Data &rarr; Save Results as CSV</b> to open the current list in a spreadsheet.</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
  print(){if(!rows.length)return alertBox('Nothing to print yet. Run a search first.');print()},
  export(){if(!rows.length)return alertBox('No data found. You must run a search before exporting.');
@@ -1696,9 +1696,17 @@ const UPD={H:{'Content-Type':'application/json','X-SDM':'1'},KEY:'sdm_updskip',
   const t=setInterval(async()=>{try{const s=await api('/api/update/progress');
     $('#upmsg')&&($('#upmsg').textContent=s.phase+(s.phase==='Downloading'?' '+s.pct+'%':'')+'…');
     if(s.running)return;clearInterval(t);
-    if(s.done){dialog(`<h3>Updated to ${esc(s.tag.replace(/^v/,''))}</h3><div class="small">Press Close and reopen Sim Data Manager to use the new version.</div><div class="btns"><button class="primary" id="upq">Close the app</button></div>`);
+    if(s.done){dialog(`<h3>Updated to ${esc(s.tag.replace(/^v/,''))}</h3><div class="small">Press Restart now to start the new version. The window reloads by itself in a few seconds.</div><div class="btns"><button type="button" id="upq">Close the app</button><button type="button" class="primary" id="uprs">Restart now</button></div>`);
+      $('#uprs').onclick=()=>UPD.restart();
       $('#upq').onclick=async()=>{try{await api('/api/update/quit',{method:'POST',headers:UPD.H,body:'{}'})}catch(e){}document.body.innerHTML='<p style="padding:30px;font:16px sans-serif">Sim Data Manager has closed. You can close this window and open it again.</p>'}}
     else alertBox(s.error||'The update failed. Nothing was changed.')}catch(e){}},700)},
+ async restart(){dialog('<h3>Restarting</h3><div class="small" id="upmsg">Starting the new version…</div><div class="btns"></div>');
+  try{await api('/api/update/restart',{method:'POST',headers:UPD.H,body:'{}'})}catch(e){return alertBox(e.message)}
+  let down=false;const t0=Date.now();
+  const t=setInterval(async()=>{let ok=false;try{const r=await fetch('/api/ping',{cache:'no-store'});ok=r.ok}catch(e){}
+    if(!ok)down=true;
+    if(ok&&down){clearInterval(t);location.reload();return}
+    if(Date.now()-t0>60000){clearInterval(t);$('#upmsg')&&($('#upmsg').textContent='The new version did not start by itself. Close this window and open Sim Data Manager again.')}},1000)},
  async manual(){dialog('<h3>Check for Updates</h3><div class="small">Checking…</div><div class="btns"></div>');
   try{const r=await api('/api/update/check',{method:'POST',headers:UPD.H,body:'{}'});
    if(r.state==='available')return UPD.offer(r);

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+sdm.db*
+sdm-before-shared.db
+sdm_ai.dat
+sdm_login.dat
+window-profile/
+archive.log
+sdmmodern.prev/
+sdmmodern.new/

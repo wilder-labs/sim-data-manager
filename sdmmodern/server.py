@@ -278,6 +278,26 @@ def make_handler(app):
                     if u.path == '/api/update/quit':
                         app.quit = True
                         return self._send({'ok': True})
+                    if u.path == '/api/update/restart':
+                        # only after an update finished: start this same app again (same window, same port), then exit
+                        if not (app.update and app.update.state.get('done')):
+                            return self._send({'error': 'Restart is only offered right after an update.'}, 400)
+                        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                        script = os.path.join(base, 'run_sdm.py')
+                        if not os.path.isfile(script):
+                            return self._send({'error': 'Could not find the start file. Close the app and open it again.'}, 400)
+                        port = self.server.server_address[1]
+                        cmd = [sys.executable, script, '--no-window', '--port', str(port), '--db', os.path.abspath(app.store.path)]
+                        flags = 0
+                        if os.name == 'nt':
+                            flags = 0x00000008 | 0x00000200 | 0x08000000      # detached, own group, no console window
+                        try:
+                            subprocess.Popen(cmd, cwd=base, env=dict(os.environ, SDM_WAIT_PORT=str(port)), creationflags=flags,
+                                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+                        except OSError as e:
+                            return self._send({'error': 'Could not restart: %s. Close the app and open it again.' % str(e)[:120]}, 400)
+                        app.quit = True
+                        return self._send({'ok': True})
                     return self._send({'error': 'Unknown request.'}, 404)
                 if u.path.startswith('/api/shared/'):
                     if self.headers.get('X-SDM') != '1':        # a web page on another site cannot add this header
@@ -414,6 +434,16 @@ def find_app_browser():
 def run(db_path=None, open_window=True, port=0):
     if sys.stdout is None:          # pythonw has no console
         sys.stdout = sys.stderr = open(os.devnull, 'w')
+    wait_port = os.environ.pop('SDM_WAIT_PORT', '')
+    if wait_port.isdigit():                 # restarted by the updater: wait until the old copy has let go of the port and the database
+        end = time.time() + 40
+        while time.time() < end:
+            with socket.socket() as t:
+                t.settimeout(0.5)
+                if t.connect_ex(('127.0.0.1', int(wait_port))) != 0:
+                    break
+            time.sleep(0.5)
+        time.sleep(0.5)
     store = Store(db_path)
     from . import viewer as _vw; _vw.use_store(store)
     app = App(store)

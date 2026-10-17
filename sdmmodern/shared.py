@@ -5,7 +5,7 @@ import os, re, sqlite3, threading, time, zipfile, http.cookiejar, urllib.request
 DEFAULT_LINK = 'https://github.com/wilder-labs/sim-data-manager/releases/download/data/SDM-database.zip'                                   # set to the shared database link (a GitHub release file or a Drive link); users can also paste their own
 ALLOW_HOSTS = {'drive.google.com', 'drive.usercontent.google.com', 'docs.google.com', 'github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com'}
 SCHEMES = ('https',)
-UA = 'SimDataManager/0.9.1 (shared database pull)'
+UA = 'SimDataManager/0.9.2 (shared database pull)'
 PRIVATE_TABLES = ('stable_groups', 'sire_watch', 'sire_prices', 'race_calls')
 KEEP_NEW_SETTINGS = ('anchor_week', 'anchor_date', 'earn_v', 'oc_sig')
 CHUNK = 1 << 20
