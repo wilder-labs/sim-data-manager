@@ -52,6 +52,7 @@ button.row{cursor:pointer}
 .ringw .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 24px/1 var(--disp)}
 .ringw .c small{font:500 10px var(--body);color:var(--muted);margin-top:2px}
 .back{min-height:44px;background:none;border:0;color:var(--accent);font-weight:600;font-size:15px;padding:0;margin-top:4px}
+.form.tap{cursor:pointer}.form.tap:active{background:var(--s2)}
 .form{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px 14px;margin:8px 0}
 .fin{flex:none;width:58px;text-align:center}
 .fin b{display:block;font:700 30px/1 var(--disp);white-space:nowrap}
@@ -62,6 +63,7 @@ button.row{cursor:pointer}
 .fbody .l2{color:var(--muted);font-size:12.5px;margin-top:2px}
 .sp{flex:none;text-align:right;font:700 30px/1 var(--disp)}
 .sp small{display:block;font:500 11px var(--body);color:var(--muted);margin-top:2px}
+.tchg{margin:20px 0 12px;padding-top:8px;border-top:2px dashed var(--gold);text-align:center;color:var(--gold);font-weight:600;font-size:13px}.tchg small{display:block;color:var(--soft);font-weight:400;font-size:12px;margin-top:2px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{font:600 11px var(--body);color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.06em;padding:4px 6px 6px 0}
 td{padding:8px 6px 8px 0;border-top:1px solid var(--line)}
@@ -111,12 +113,13 @@ function formCard(r){
   var f=Number(r.fin),fc=f===1?'f1':f===2?'f2':f===3?'f3':'';
   var l1=[dt(r.date),esc(r.track)+(r.race_no?' R'+esc(r.race_no):'')].filter(Boolean).join(' · ');var l2=[dist(r.dist),surf(r.surf)+(r.cond?' '+esc(r.cond):''),r.restr?esc(r.restr):''].filter(Boolean).join(' · ');
   var l3=[r.purse?money(r.purse):'',r.odds?num(r.odds,1)+'-1':'',r.ppos?'post '+esc(r.ppos):''].filter(Boolean).join(' · ');
-  return '<div class="form"><div class="fin '+fc+'"><b>'+(f?ord(f):'-')+'</b><small>of '+esc(r.size||'?')+'</small></div><div class="fbody"><div class="l1">'+l1+'</div><div class="l2">'+l2+'</div><div class="l2">'+l3+'</div></div><div class="sp">'+(sp(r.sp)||'-')+'<small>speed</small></div></div>'}
+  return '<div class="form tap" role="button" tabindex="0" data-rn="'+esc(r.racenum)+'"><div class="fin '+fc+'"><b>'+(f?ord(f):'-')+'</b><small>of '+esc(r.size||'?')+'</small></div><div class="fbody"><div class="l1">'+l1+'</div><div class="l2">'+l2+'</div><div class="l2">'+l3+'</div></div><div class="sp">'+(sp(r.sp)||'-')+'<small>speed</small></div></div>'}
 function pager(rows,make,step,holder){
   var shown=0,box=document.createElement('div');holder.appendChild(box);
   var btn=document.createElement('button');btn.className='more';holder.appendChild(btn);
   function go(){var e=Math.min(rows.length,shown+step),h='';for(var i=shown;i<e;i++)h+=make(rows[i],i);box.insertAdjacentHTML('beforeend',h);shown=e;btn.style.display=shown>=rows.length?'none':'';btn.textContent='Show more ('+(rows.length-shown)+' left)'}
   btn.onclick=go;go()}
+var stack=[];function nav(fn){stack.push(fn);history.pushState({},'');fn()}
 var view={tab:'search'},kindSel='horse',lastQ={kind:'horse',q:''};
 function setTab(t){view.tab=t;$('#nsearch').setAttribute('aria-current',t==='search'?'page':'false');$('#nlists').setAttribute('aria-current',t==='lists'?'page':'false')}
 /* ---------- search ---------- */
@@ -144,13 +147,12 @@ function runSearch(q,keep){
     if(!r.rows||!r.rows.length){res.innerHTML='<div class="empty">Nothing found for &ldquo;'+esc(q)+'&rdquo;.<br>Try a shorter name with * at the end.</div>';return}
     if(keep){var x=r.rows[0];res.innerHTML=kindSel==='horse'?'<button class="row" data-hid="'+esc(x.hid)+'"><div class="main"><div class="nm">'+esc(x.hname)+'</div><div class="meta">'+esc(x.tag||'')+' '+esc(x.sex||'')+'</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>':'<button class="row" data-own="'+esc(x.oname)+'"><div class="main"><div class="nm">'+esc(x.oname)+'</div><div class="meta">trainer</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>';
       res.onclick=function(e){var b=e.target.closest('button.row');if(!b)return;if(b.dataset.hid)openHorse(b.dataset.hid);else openTrainer(b.dataset.own)};return}
-    history.pushState({v:'res'},'');
-    if(kindSel==='horse')renderHorse(r);else renderTrainer(r,q);
+    var k=kindSel;nav(function(){k==='horse'?renderHorse(r):renderTrainer(r,q)});
   }).catch(function(e){res.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
 }
 function openHorse(hid){
   app.innerHTML=sk(5);
-  post('/api/search',{kind:'horse',name:'',hid:String(hid),first_week:'',last_week:''}).then(function(r){history.pushState({v:'h'},'');renderHorse(r)}).catch(function(e){app.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
+  post('/api/search',{kind:'horse',name:'',hid:String(hid),first_week:'',last_week:''}).then(function(r){nav(function(){renderHorse(r)})}).catch(function(e){app.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
 }
 function backBtn(){return '<button class="back" id="bk">&lsaquo; Back</button>'}
 function bindBack(){var b=$('#bk');if(b)b.onclick=function(){history.back()}}
@@ -164,7 +166,7 @@ function renderHorse(r){
   if(bc.length){o+='<h2>By class</h2><div class="card">'+bc.map(function(x){var w=x.win_pct||0;return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between"><span>'+esc(x.cls)+'</span><span class="sub">'+x.wins+' wins in '+x.starts+' &middot; '+money(x.earn)+'</span></div><div class="bar"><i style="width:'+Math.max(2,w)+'%;background:var(--accent)"></i></div></div>'}).join('')+'</div>'}
   o+='<h2>Races</h2><div id="runs"></div>';
   if(r.truncated)o+='<div class="note">The list was cut off at the limit.</div>';
-  app.innerHTML=o;bindBack();pager(rows,formCard,10,$('#runs'));window.scrollTo(0,0)
+  app.innerHTML=o;bindBack();pager(rows,function(r,i){return (i>0&&rows[i-1].oname&&r.oname&&r.oname!==rows[i-1].oname?'<div class="tchg" role="separator">Trainer change, '+dt(rows[i-1].date)+'<small>Above: '+esc(rows[i-1].oname)+' &middot; Below: '+esc(r.oname)+'</small></div>':'')+formCard(r)},10,$('#runs'));bindRaces($('#runs'));window.scrollTo(0,0)
 }
 function renderTrainer(r,q){
   var rows=(r.rows||[]).slice().sort(function(a,b){return (b.racenum||0)-(a.racenum||0)}),s=r.summary||{};
@@ -180,6 +182,29 @@ function renderTrainer(r,q){
   var hold=$('#hl');
   pager(hl,function(h){return '<button class="row" data-hid="'+esc(h.hid)+'"><div class="main"><div class="nm">'+esc(h.hname)+'</div><div class="meta">'+h.n+' runs &middot; '+h.w+'-'+h.p+'-'+h.s+' &middot; last '+dt(h.last)+'</div></div><div class="big">'+(sp(h.best)||'-')+'<small>best speed</small></div></button>'},12,hold);
   hold.onclick=function(e){var b=e.target.closest('button.row');if(b)openHorse(b.dataset.hid)};
+  window.scrollTo(0,0)
+}
+/* ---------- race result ---------- */
+function bindRaces(el){
+  function go(e){var f=e.target.closest('.form.tap');if(f)openRace(f.dataset.rn)}
+  el.addEventListener('click',go);
+  el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(e)}})}
+function openRace(rn){
+  app.innerHTML=sk(5);
+  post('/api/search',{kind:'race',name:Number(rn).toFixed(4),hid:'',first_week:'',last_week:''}).then(function(r){
+    if(!r.rows||!r.rows.length)throw new Error('That race is not in the data.');nav(function(){renderRace(r)})
+  }).catch(function(e){app.innerHTML=backBtn()+'<div class="empty err">'+esc(e.message)+'</div>';bindBack()})
+}
+function renderRace(r){
+  var c=r.race||r.rows[0],rows=r.rows.slice().sort(function(a,b){return (a.fin||99)-(b.fin||99)});
+  var prev={};((r.field&&r.field.horses)||[]).forEach(function(h){prev[h.hid]=h});
+  var o=backBtn()+'<h1>'+esc(c.track)+' race '+esc(c.race_no)+'</h1><div class="sub">'+dt(c.date)+' '+esc(String(c.date||'').slice(0,4))+' &middot; '+num(rows.length)+' runners</div>';
+  o+='<div class="tiles">'+tile(dist(c.dist)||'-','Distance')+tile(esc(surf(c.surf))+(c.cond?' '+esc(c.cond):''),'Surface')+tile(esc(c.restr||'-'),'Race type')+tile(money(c.purse),'Purse','gold')+'</div>';
+  o+='<h2>Result</h2><div id="rr">';
+  rows.forEach(function(x){var f=Number(x.fin),fc=f===1?'f1':f===2?'f2':f===3?'f3':'',pv=prev[x.hid];
+    o+='<button class="row" data-hid="'+esc(x.hid)+'"><div class="fin '+fc+'" style="width:58px"><b>'+(f?ord(f):'-')+'</b><small>post '+esc(x.ppos||'?')+'</small></div><div class="main"><div class="nm">'+esc(x.hname)+'</div><div class="meta">'+[esc(x.oname),x.odds?num(x.odds,1)+'-1':'',x.earn?money(x.earn):''].filter(Boolean).join(' · ')+'</div>'+(pv&&pv.prev_sp?'<div class="meta">last start '+sp(pv.prev_sp)+(pv.prev_days?' &middot; '+pv.prev_days+' days ago':'')+'</div>':'')+'</div><div class="big">'+(sp(x.sp)||'-')+'<small>speed</small></div></button>'});
+  o+='</div>';app.innerHTML=o;bindBack();
+  $('#rr').onclick=function(e){var b=e.target.closest('button.row');if(b&&b.dataset.hid)openHorse(b.dataset.hid)};
   window.scrollTo(0,0)
 }
 /* ---------- lists ---------- */
@@ -216,11 +241,11 @@ function loadList(){
 }
 function openTrainer(name){
   app.innerHTML=sk(5);
-  post('/api/search',{kind:'owner',name:name,hid:'',first_week:'',last_week:''}).then(function(r){history.pushState({v:'t'},'');renderTrainer(r,name)}).catch(function(e){app.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
+  post('/api/search',{kind:'owner',name:name,hid:'',first_week:'',last_week:''}).then(function(r){nav(function(){renderTrainer(r,name)})}).catch(function(e){app.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
 }
-window.addEventListener('popstate',function(){if(view.tab==='lists'){showLists();return}showSearch();if(lastQ.q&&lastQ.kind===kindSel)runSearch(lastQ.q,true)});
-$('#nsearch').onclick=function(){showSearch()};
-$('#nlists').onclick=function(){showLists()};
+window.addEventListener('popstate',function(){stack.pop();var t=stack[stack.length-1];if(t){t();return}if(view.tab==='lists'){showLists();return}showSearch();if(lastQ.q&&lastQ.kind===kindSel)runSearch(lastQ.q,true)});
+$('#nsearch').onclick=function(){stack.length=0;showSearch()};
+$('#nlists').onclick=function(){stack.length=0;showLists()};
 showSearch();
 })();
 </script>
