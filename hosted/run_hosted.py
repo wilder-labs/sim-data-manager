@@ -94,6 +94,8 @@ def latest_version(url):
 def fetch_new(url, data_dir, version):
     """Downloads the new database beside the old one. The running app keeps using the old file until it restarts."""
     from sdmmodern import updater as UP
+    if not url.startswith('https://github.com/wilder-labs/sim-data-manager/releases/download/'):
+        raise RuntimeError('DB_URL must be a release file of wilder-labs/sim-data-manager')
     db = os.path.join(data_dir, 'sdm.db')
     tmpz, new = os.path.join(data_dir, 'download.zip'), db + '.new'
     for f in (new, new + '.ok'):
