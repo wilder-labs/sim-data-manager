@@ -8,6 +8,8 @@ Settings (environment variables):
   DATA_DIR   a folder that survives restarts, for example a Railway volume mounted at /data (default ./data)
   DB_URL     address of the one-year database zip (default: SDM-2026.zip on this project's 'data' release)
   DEMO_LABEL text shown in the banner (default: Demo: 2026 races only)
+  AUTO_UPDATE set to 1 to check the release every 6 hours; when the database file there changes, download it
+             beside the old one, then restart so the new one is used (the host starts the app again)
 """
 import os, sys, time, json, shutil, zipfile, threading, collections, importlib
 from http.server import ThreadingHTTPServer
@@ -40,6 +42,15 @@ def ensure_db(data_dir, url):
     from sdmmodern import updater as UP
     os.makedirs(data_dir, exist_ok=True)
     db = os.path.join(data_dir, 'sdm.db')
+    new, mark = db + '.new', os.path.join(data_dir, 'db.version')
+    if os.path.exists(new) and os.path.exists(new + '.ok'):      # a finished download is waiting: swap it in
+        for suf in ('', '-wal', '-shm'):
+            if os.path.exists(db + suf):
+                os.remove(db + suf)
+        os.replace(new, db)
+        os.replace(new + '.ok', mark)
+        log('new database in place: %.0f MB' % (os.path.getsize(db) / 1048576))
+        return db
     if os.path.exists(db) and os.environ.get('REFRESH') != '1':
         log('database already on the volume: %.0f MB' % (os.path.getsize(db) / 1048576))
         return db
@@ -59,8 +70,72 @@ def ensure_db(data_dir, url):
         if os.path.exists(db + suf):
             os.remove(db + suf)
     os.replace(tmpdb, db)
+    try:
+        open(mark, 'w').write(latest_version(url))
+    except Exception:
+        pass
     log('database ready: %.0f MB' % (os.path.getsize(db) / 1048576))
     return db
+
+
+def latest_version(url):
+    """Asks GitHub which version of the release file is newest. Returns a short text, or '' if it could not tell."""
+    import urllib.request
+    name = url.rsplit('/', 1)[-1]
+    req = urllib.request.Request('https://api.github.com/repos/wilder-labs/sim-data-manager/releases/tags/data',
+                                 headers={'User-Agent': 'sdm-hosted', 'Accept': 'application/vnd.github+json'})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        for a in json.loads(r.read(2000000)).get('assets', []):
+            if a.get('name') == name:
+                return '%s|%s|%s' % (a.get('id'), a.get('updated_at'), a.get('size'))
+    return ''
+
+
+def fetch_new(url, data_dir, version):
+    """Downloads the new database beside the old one. The running app keeps using the old file until it restarts."""
+    from sdmmodern import updater as UP
+    db = os.path.join(data_dir, 'sdm.db')
+    tmpz, new = os.path.join(data_dir, 'download.zip'), db + '.new'
+    for f in (new, new + '.ok'):
+        if os.path.exists(f):
+            os.remove(f)
+    log('new database found, downloading', version)
+    with UP._open(url) as r, open(tmpz, 'wb') as f:
+        shutil.copyfileobj(r, f, 1 << 20)
+    with zipfile.ZipFile(tmpz) as z:
+        if z.namelist() != ['sdm.db']:
+            raise RuntimeError('the database zip should hold only sdm.db')
+        with z.open('sdm.db') as s, open(new, 'wb') as o:
+            shutil.copyfileobj(s, o, 1 << 20)
+    os.remove(tmpz)
+    import sqlite3
+    c = sqlite3.connect('file:%s?mode=ro' % new.replace('\\', '/'), uri=True)   # sanity check before swapping
+    try:
+        if c.execute('PRAGMA quick_check(1)').fetchone()[0] != 'ok':
+            raise RuntimeError('new database failed its check')
+        c.execute('SELECT 1 FROM sqlite_master LIMIT 1').fetchone()
+    finally:
+        c.close()
+    with open(new + '.ok', 'w') as f:
+        f.write(version)
+
+
+def updater_loop(url, data_dir):
+    mark = os.path.join(data_dir, 'db.version')
+    while True:
+        try:
+            v = latest_version(url)
+            have = open(mark).read().strip() if os.path.exists(mark) else ''
+            if v and v != have:
+                fetch_new(url, data_dir, v)
+                log('restarting to use the new database')
+                time.sleep(2)
+                os._exit(1)                            # non-zero so the host starts the app again
+            else:
+                log('database is current' if v else 'could not read the release version, will try later')
+        except Exception as e:
+            log('update check failed:', type(e).__name__)
+        time.sleep(6 * 3600)
 
 
 class TimedLock:
@@ -186,6 +261,8 @@ def main():
     app.lock = tl
     store.db.set_progress_handler(lambda: 1 if tl.deadline and time.time() > tl.deadline else 0, 20000)
     label = os.environ.get('DEMO_LABEL', 'Demo: 2026 races only. Read-only.')
+    if os.environ.get('AUTO_UPDATE') == '1':
+        threading.Thread(target=updater_loop, args=(os.environ.get('DB_URL', DEFAULT_URL), data_dir), daemon=True).start()
     srv = ThreadingHTTPServer(('0.0.0.0', port), build_handler(app, label, Limiter()))
     srv.daemon_threads = True
     log('listening on port', port)
