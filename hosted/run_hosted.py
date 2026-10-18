@@ -17,14 +17,14 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
 DEFAULT_URL = 'https://github.com/wilder-labs/sim-data-manager/releases/download/data/SDM-2026.zip'
-GET_OK = {'/', '/api/info', '/api/tracks', '/api/date', '/api/race-form', '/api/ping', '/healthz'}
+GET_OK = {'/', '/m', '/api/info', '/api/tracks', '/api/date', '/api/race-form', '/api/ping', '/healthz'}
 POST_OK = {'/api/search', '/api/owner-changes', '/api/best-speeds', '/api/current-horses', '/api/first-time-starters',
            '/api/graded-races', '/api/stakes-year', '/api/owner-rankings'}
 MAX_BODY = 20000                      # a search request is a few hundred bytes
 RATE_PER_MIN = 120                    # per visitor address
 QUERY_SECONDS = 8                     # a query running longer than this is stopped
 HIDE_JS = r"""<style>#datachip{pointer-events:none}.hosted-bar{background:#243b53;color:#fff;padding:6px 14px;font:13px system-ui,sans-serif;text-align:center}</style>
-<script>(function(){var hide=['denovo','import','shared','share','remove','compact','update','exit','simreset','archive','tracks'];var ids=['mystfs','claims','sirefind'];
+<script>(function(){try{if(Math.min(screen.width,screen.height)<700&&location.search.indexOf('desktop')<0){location.replace('/m');return}}catch(e){}try{Object.keys(DEFHID).forEach(function(k){DEFHID[k]=[]})}catch(e){}var hide=['denovo','import','shared','share','remove','compact','update','exit','simreset','archive','tracks'];var ids=['mystfs','claims','sirefind'];
 function go(){var d=document;ids.forEach(function(i){var e=d.getElementById(i);if(e)e.style.display='none'});var em=d.getElementById('empty');if(em&&em.textContent.indexOf('First time')>-1)em.textContent='Search for a horse, a trainer or a race. This demo holds 2026 races only.';hide.forEach(function(a){d.querySelectorAll('[data-act="'+a+'"]').forEach(function(e){e.style.display='none'})});
 d.querySelectorAll('.menu .drop hr + hr').forEach(function(e){e.style.display='none'});
 if(!d.querySelector('.hosted-bar')){var b=d.createElement('div');b.className='hosted-bar';b.textContent=%LABEL%;d.body.insertBefore(b,d.body.firstChild)}}
@@ -140,6 +140,11 @@ def build_handler(app, label, limiter):
                 return
             if path == '/healthz':
                 return self._send({'ok': True})
+            if path == '/m':
+                try:
+                    return self._send(open(os.path.join(HERE, 'm.html'), 'rb').read(), ctype='text/html; charset=utf-8')
+                except OSError:
+                    return self._deny(500, 'page missing')
             if path == '/':
                 try:
                     html = open(os.path.join(ROOT, 'sdmmodern', 'static', 'index.html'), 'rb').read().decode('utf-8')

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B110E">
+<title>SDM Mobile</title>
+<style>
+:root{--bg:#0B110E;--surface:#141D18;--s2:#1C2822;--line:#26352D;--nav:#101814;--text:#EEF3EF;--soft:#C9D6CE;--muted:#9DB0A5;--accent:#5BE08F;--onacc:#08110C;--gold:#F2C14E;--place:#D7DEE4;--show:#E0A26E;--err:#F87171;
+--disp:"Barlow Condensed","sans-serif-condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;--body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 var(--body);font-variant-numeric:tabular-nums;overflow-x:hidden}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font:700 13px var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand b{color:var(--accent)}
+.brand .grow{flex:1}
+.brand a{color:var(--muted);font:500 12px var(--body);letter-spacing:0;text-transform:none;text-decoration:underline}
+.wrap{padding:12px 16px}
+h1{font:700 34px/34px var(--disp);margin:6px 0 2px;overflow-wrap:anywhere}
+h2{font:600 20px var(--disp);letter-spacing:.04em;text-transform:uppercase;margin:22px 0 8px;color:var(--soft)}
+.sub{color:var(--muted);font-size:13px}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;margin:10px 0}
+.seg button{flex:1;min-height:44px;border:0;background:none;border-radius:999px;font-weight:600;font-size:14px;color:var(--soft)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--onacc)}
+.sbox{display:flex;gap:8px}
+.sbox input{flex:1;min-width:0;min-height:52px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font:inherit;font-size:16px}
+.sbox input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.btn{min-height:52px;padding:0 20px;border-radius:16px;border:0;background:var(--accent);color:var(--onacc);font-weight:700;font-size:15px}
+.chip{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface2,var(--s2));color:var(--soft);font-weight:600;font-size:13px;white-space:nowrap}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--onacc);border-color:var(--accent)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px 16px;margin:10px 0}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px 16px;margin:8px 0;min-height:64px}
+button.row{cursor:pointer}
+.row .main{flex:1;min-width:0}
+.row .nm{font:700 21px/22px var(--disp);overflow-wrap:anywhere}
+.row .meta{color:var(--muted);font-size:12px;margin-top:2px}
+.big{font:700 28px/1 var(--disp);text-align:right}
+.row .big{font-size:24px}.big small{display:block;font:500 11px var(--body);color:var(--muted);margin-top:2px}
+.rank{font:700 20px var(--disp);color:var(--muted);min-width:34px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.tile{background:var(--s2);border-radius:16px;padding:10px 12px}
+.tile .v{font:700 28px/1 var(--disp)}
+.tile .l{color:var(--muted);font-size:12px;margin-top:4px}
+.gold{color:var(--gold)}.acc{color:var(--accent)}
+.hero{display:flex;align-items:center;gap:16px;margin-top:8px}
+.ringw{position:relative;width:96px;height:96px;flex:none}
+.ringw svg{transform:rotate(-90deg)}
+.ringw .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 24px/1 var(--disp)}
+.ringw .c small{font:500 10px var(--body);color:var(--muted);margin-top:2px}
+.back{min-height:44px;background:none;border:0;color:var(--accent);font-weight:600;font-size:15px;padding:0;margin-top:4px}
+.form{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px 14px;margin:8px 0}
+.fin{flex:none;width:58px;text-align:center}
+.fin b{display:block;font:700 30px/1 var(--disp);white-space:nowrap}
+.fin small{color:var(--muted);font-size:11px}
+.f1{color:var(--gold)}.f2{color:var(--place)}.f3{color:var(--show)}
+.fbody{flex:1;min-width:0}
+.fbody .l1{font-weight:600}
+.fbody .l2{color:var(--muted);font-size:12.5px;margin-top:2px}
+.sp{flex:none;text-align:right;font:700 30px/1 var(--disp)}
+.sp small{display:block;font:500 11px var(--body);color:var(--muted);margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font:600 11px var(--body);color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.06em;padding:4px 6px 6px 0}
+td{padding:8px 6px 8px 0;border-top:1px solid var(--line)}
+.n{text-align:right}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;display:flex;margin-top:6px}
+.bar i{display:block;height:100%}
+.empty{color:var(--muted);text-align:center;padding:36px 8px}
+.err{color:var(--err)}
+.more{display:block;width:100%;min-height:48px;margin:10px 0;border-radius:16px;border:1px solid var(--line);background:none;color:var(--accent);font-weight:600}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--nav);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;min-height:64px;background:none;border:0;color:var(--muted);font-weight:600;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.nav button[aria-current=page]{color:var(--accent)}
+.nav svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sk{height:64px;border-radius:20px;background:linear-gradient(90deg,var(--surface),var(--s2),var(--surface));background-size:200% 100%;animation:sk 1.2s linear infinite;margin:8px 0}
+@keyframes sk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+.note{background:var(--s2);border-radius:14px;padding:10px 12px;color:var(--soft);font-size:13px;margin:10px 0}
+.foot{color:var(--muted);font-size:12px;text-align:center;padding:18px 8px}
+</style>
+</head>
+<body>
+<div class="top"><div class="brand"><span>Sim Data <b>Manager</b></span><span class="grow"></span><a href="/?desktop=1">Desktop view</a></div></div>
+<div id="app" class="wrap"></div>
+<nav class="nav" aria-label="Main">
+  <button id="nsearch" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Search</button>
+  <button id="nlists"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Lists</button>
+</nav>
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var app=$('#app');
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function num(v,d){return v==null||v===''||isNaN(v)?'':Number(v).toLocaleString('en-US',{maximumFractionDigits:d==null?0:d,minimumFractionDigits:d||0})}
+function money(v){return v==null?'':'$'+num(v)}
+function sp(v){return v==null||v<=0?'':Number(v).toFixed(1)}
+var SURF={D:'Dirt',T:'Turf',P:'Poly',S:'Poly'};
+function surf(c){return SURF[c]||c||''}
+function ord(n){n=Number(n);if(!n)return '';var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
+function dist(d){d=Number(d);if(!d)return '';if(d<8)return d+'f';var w=Math.floor(d/8),r=d-w*8,n=Math.round(r*2),dn=16;if(!n)return w+'m';while(n%2===0&&dn>1){n/=2;dn/=2}return w+' '+n+'/'+dn+'m'}
+function dt(s){if(!s)return '';var p=String(s).split('-');return p.length===3?(['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]]+' '+(+p[2])):s}
+function post(u,b){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j&&j.error||('Error '+r.status));return j})})}
+function sk(n){var o='';for(var i=0;i<(n||4);i++)o+='<div class="sk"></div>';return o}
+function ring(p){var r=40,c=2*Math.PI*r,v=Math.max(0,Math.min(100,p||0));return '<div class="ringw" role="img" aria-label="Win percentage '+Math.round(v)+' percent"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#26352D" stroke-width="9"/><circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#5BE08F" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+(c*v/100)+' '+c+'"/></svg><div class="c">'+Math.round(v)+'%<small>WIN</small></div></div>'}
+function tile(v,l,cls){return '<div class="tile"><div class="v '+(cls||'')+'">'+v+'</div><div class="l">'+l+'</div></div>'}
+function formCard(r){
+  var f=Number(r.fin),fc=f===1?'f1':f===2?'f2':f===3?'f3':'';
+  var l1=[dt(r.date),esc(r.track)+(r.race_no?' R'+esc(r.race_no):'')].filter(Boolean).join(' · ');var l2=[dist(r.dist),surf(r.surf)+(r.cond?' '+esc(r.cond):''),r.restr?esc(r.restr):''].filter(Boolean).join(' · ');
+  var l3=[r.purse?money(r.purse):'',r.odds?num(r.odds,1)+'-1':'',r.ppos?'post '+esc(r.ppos):''].filter(Boolean).join(' · ');
+  return '<div class="form"><div class="fin '+fc+'"><b>'+(f?ord(f):'-')+'</b><small>of '+esc(r.size||'?')+'</small></div><div class="fbody"><div class="l1">'+l1+'</div><div class="l2">'+l2+'</div><div class="l2">'+l3+'</div></div><div class="sp">'+(sp(r.sp)||'-')+'<small>speed</small></div></div>'}
+function pager(rows,make,step,holder){
+  var shown=0,box=document.createElement('div');holder.appendChild(box);
+  var btn=document.createElement('button');btn.className='more';holder.appendChild(btn);
+  function go(){var e=Math.min(rows.length,shown+step),h='';for(var i=shown;i<e;i++)h+=make(rows[i],i);box.insertAdjacentHTML('beforeend',h);shown=e;btn.style.display=shown>=rows.length?'none':'';btn.textContent='Show more ('+(rows.length-shown)+' left)'}
+  btn.onclick=go;go()}
+var view={tab:'search'},kindSel='horse',lastQ={kind:'horse',q:''};
+function setTab(t){view.tab=t;$('#nsearch').setAttribute('aria-current',t==='search'?'page':'false');$('#nlists').setAttribute('aria-current',t==='lists'?'page':'false')}
+/* ---------- search ---------- */
+function showSearch(){
+  setTab('search');
+  app.innerHTML='<h1>Search</h1><div class="sub">2026 races. View only.</div>'
+  +'<div class="seg" role="group" aria-label="Type of search"><button id="kh" aria-pressed="'+(kindSel==='horse')+'">Horse</button><button id="ko" aria-pressed="'+(kindSel==='owner')+'">Trainer</button></div>'
+  +'<form class="sbox" id="sf"><input id="q" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="'+(kindSel==='horse'?'Horse name':'Trainer name')+'" aria-label="Name" value="'+esc(lastQ.q)+'"><button class="btn" type="submit">Go</button></form>'
+  +'<div class="sub" style="margin:8px 2px">Use * as a wildcard, for example big r*</div><div id="res"></div>';
+  $('#kh').onclick=function(){kindSel='horse';showSearch()};
+  $('#ko').onclick=function(){kindSel='owner';showSearch()};
+  $('#sf').onsubmit=function(e){e.preventDefault();var q=$('#q').value.trim();if(q)runSearch(q)};
+}
+function runSearch(q,keep){
+  lastQ={kind:kindSel,q:q};
+  var res=$('#res');res.innerHTML=sk(4);
+  var name=kindSel==='horse'?(q.indexOf('*')<0?q+'*':q).toUpperCase():q.toLowerCase();
+  post('/api/search',{kind:kindSel,name:name,hid:'',first_week:'',last_week:''}).then(function(r){
+    if(r.candidates&&r.candidates.length){
+      var h='<div class="sub" style="margin:6px 2px">'+r.candidates.length+' horses match</div>';res.innerHTML=h;
+      var holder=document.createElement('div');res.appendChild(holder);
+      pager(r.candidates,function(c){return '<button class="row" data-hid="'+esc(c.hid)+'"><div class="main"><div class="nm">'+esc(c.hname)+'</div><div class="meta">'+esc(c.tag||'')+' '+esc(c.sex||'')+' · '+num(c.starts)+' starts · '+esc(c.owner||'')+'</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>'},25,holder);
+      holder.onclick=function(e){var b=e.target.closest('button.row');if(b)openHorse(b.dataset.hid)};
+      return}
+    if(!r.rows||!r.rows.length){res.innerHTML='<div class="empty">Nothing found for &ldquo;'+esc(q)+'&rdquo;.<br>Try a shorter name with * at the end.</div>';return}
+    if(keep){var x=r.rows[0];res.innerHTML=kindSel==='horse'?'<button class="row" data-hid="'+esc(x.hid)+'"><div class="main"><div class="nm">'+esc(x.hname)+'</div><div class="meta">'+esc(x.tag||'')+' '+esc(x.sex||'')+'</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>':'<button class="row" data-own="'+esc(x.oname)+'"><div class="main"><div class="nm">'+esc(x.oname)+'</div><div class="meta">trainer</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>';
+      res.onclick=function(e){var b=e.target.closest('button.row');if(!b)return;if(b.dataset.hid)openHorse(b.dataset.hid);else openTrainer(b.dataset.own)};return}
+    history.pushState({v:'res'},'');
+    if(kindSel==='horse')renderHorse(r);else renderTrainer(r,q);
+  }).catch(function(e){res.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
+}
+function openHorse(hid){
+  app.innerHTML=sk(5);
+  post('/api/search',{kind:'horse',name:'',hid:String(hid),first_week:'',last_week:''}).then(function(r){history.pushState({v:'h'},'');renderHorse(r)}).catch(function(e){app.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
+}
+function backBtn(){return '<button class="back" id="bk">&lsaquo; Back</button>'}
+function bindBack(){var b=$('#bk');if(b)b.onclick=function(){history.back()}}
+function renderHorse(r){
+  var rows=(r.rows||[]).slice().sort(function(a,b){return (b.racenum||0)-(a.racenum||0)}),s=r.summary||{},h0=rows[0]||{};
+  var o=backBtn()+'<h1>'+esc(h0.hname)+'</h1><div class="sub">'+[h0.tag,h0.sex==='M'?'Mare':h0.sex==='F'?'Filly':h0.sex==='G'?'Gelding':h0.sex==='H'?'Horse':h0.sex,'trained by '+esc(h0.oname||'')].filter(Boolean).join(' · ')+'</div>';
+  o+='<div class="hero">'+ring(s.win_pct)+'<div style="flex:1;min-width:0"><div class="sub">Record (1st-2nd-3rd)</div><div class="big" style="text-align:left;font-size:34px"><span class="gold">'+(s.w||0)+'</span>-<span style="color:var(--place)">'+(s.p||0)+'</span>-<span style="color:var(--show)">'+(s.s||0)+'</span></div><div class="sub">'+num(s.starts)+' starts &middot; in the money '+Math.round(s.itm_pct||0)+'%</div></div></div>';
+  o+='<div class="tiles">'+tile(money(s.earn),'Earned','gold')+tile(sp(s.max_speed)||'-','Best speed','acc')+tile(sp(s.avg_speed)||'-','Average speed')+tile(money(s.earn_per_start),'Per start')+'</div>';
+  if(s.by_type&&s.by_type.length){o+='<h2>Speed by surface</h2><div class="card"><table><tr><th>Surface</th><th>Dist</th><th class="n">Runs</th><th class="n">Avg</th><th class="n">Best</th></tr>'+s.by_type.map(function(t){return '<tr><td>'+esc(t.surface)+'</td><td>'+esc(t.dist)+'</td><td class="n">'+num(t.n)+'</td><td class="n">'+num(t.avg,1)+'</td><td class="n"><b>'+num(t.max,1)+'</b></td></tr>'}).join('')+'</table></div>'}
+  var bc=(s.by_class||[]).filter(function(x){return x.starts});
+  if(bc.length){o+='<h2>By class</h2><div class="card">'+bc.map(function(x){var w=x.win_pct||0;return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between"><span>'+esc(x.cls)+'</span><span class="sub">'+x.wins+' wins in '+x.starts+' &middot; '+money(x.earn)+'</span></div><div class="bar"><i style="width:'+Math.max(2,w)+'%;background:var(--accent)"></i></div></div>'}).join('')+'</div>'}
+  o+='<h2>Races</h2><div id="runs"></div>';
+  if(r.truncated)o+='<div class="note">The list was cut off at the limit.</div>';
+  app.innerHTML=o;bindBack();pager(rows,formCard,10,$('#runs'));window.scrollTo(0,0)
+}
+function renderTrainer(r,q){
+  var rows=(r.rows||[]).slice().sort(function(a,b){return (b.racenum||0)-(a.racenum||0)}),s=r.summary||{};
+  var hs={};rows.forEach(function(x){var h=hs[x.hid]||(hs[x.hid]={hid:x.hid,hname:x.hname,n:0,w:0,p:0,s:0,last:'',best:0,earn:0});h.n++;if(x.fin==1)h.w++;if(x.fin==2)h.p++;if(x.fin==3)h.s++;if(!h.last||x.date>h.last)h.last=x.date;if(x.sp>h.best)h.best=x.sp;h.earn+=x.earn||0});
+  var hl=Object.keys(hs).map(function(k){return hs[k]}).sort(function(a,b){return a.last<b.last?1:-1});
+  var names=r.stable&&r.stable.length?r.stable:null;
+  var o=backBtn()+'<h1>'+esc(rows[0]&&rows[0].oname?rows[0].oname:q)+'</h1><div class="sub">Trainer &middot; '+hl.length+' horses &middot; '+rows.length+' runs</div>';
+  o+='<div class="hero">'+ring(s.win_pct)+'<div style="flex:1;min-width:0"><div class="sub">Record (1st-2nd-3rd)</div><div class="big" style="text-align:left;font-size:34px"><span class="gold">'+(s.w||0)+'</span>-<span style="color:var(--place)">'+(s.p||0)+'</span>-<span style="color:var(--show)">'+(s.s||0)+'</span></div><div class="sub">'+num(s.starts)+' starts &middot; in the money '+Math.round(s.itm_pct||0)+'%</div></div></div>';
+  o+='<div class="tiles">'+tile(money(s.earn),'Earned','gold')+tile(sp(s.max_speed)||'-','Best speed','acc')+tile(sp(s.avg_speed)||'-','Average speed')+tile(money(s.earn_per_start),'Per start')+'</div>';
+  o+='<h2>Horses</h2><div id="hl"></div>';
+  if(r.truncated)o+='<div class="note">The list was cut off at the limit, so older runs may be missing.</div>';
+  app.innerHTML=o;bindBack();
+  var hold=$('#hl');
+  pager(hl,function(h){return '<button class="row" data-hid="'+esc(h.hid)+'"><div class="main"><div class="nm">'+esc(h.hname)+'</div><div class="meta">'+h.n+' runs &middot; '+h.w+'-'+h.p+'-'+h.s+' &middot; last '+dt(h.last)+'</div></div><div class="big">'+(sp(h.best)||'-')+'<small>best speed</small></div></button>'},12,hold);
+  hold.onclick=function(e){var b=e.target.closest('button.row');if(b)openHorse(b.dataset.hid)};
+  window.scrollTo(0,0)
+}
+/* ---------- lists ---------- */
+var listSel='speeds',spdOpt='all';
+function showLists(){
+  setTab('lists');
+  app.innerHTML='<h1>Lists</h1><div class="sub">Quick lists from the 2026 data.</div>'
+  +'<div class="chips" role="group" aria-label="Which list"><button class="chip" data-l="speeds" aria-pressed="'+(listSel==='speeds')+'">Best speeds</button><button class="chip" data-l="debuts" aria-pressed="'+(listSel==='debuts')+'">First starters</button><button class="chip" data-l="rank" aria-pressed="'+(listSel==='rank')+'">Trainers</button></div><div id="opts"></div><div id="lst"></div>';
+  app.querySelector('.chips').onclick=function(e){var b=e.target.closest('button');if(b){listSel=b.dataset.l;showLists()}};
+  loadList()
+}
+function runRow(r,i,showTrainer){return '<button class="row" data-hid="'+esc(r.hid)+'"><div class="rank">'+(r.rank||i+1)+'</div><div class="main"><div class="nm">'+esc(r.hname)+'</div><div class="meta">'+[dt(r.date),esc(r.track),dist(r.dist),surf(r.surf),esc(r.oname)].filter(Boolean).join(' · ')+'</div></div><div class="big">'+(sp(r.sp)||'-')+'<small>'+(r.fin?ord(r.fin):'speed')+'</small></div></button>'}
+function loadList(){
+  var l=$('#lst'),opts=$('#opts');l.innerHTML=sk(6);
+  if(listSel==='speeds'){
+    opts.innerHTML='<div class="chips" role="group" aria-label="Filter"><button class="chip" data-o="all" aria-pressed="'+(spdOpt==='all')+'">All</button><button class="chip" data-o="two" aria-pressed="'+(spdOpt==='two')+'">2-year-olds</button><button class="chip" data-o="gr" aria-pressed="'+(spdOpt==='gr')+'">Graded</button></div>';
+    opts.onclick=function(e){var b=e.target.closest('button');if(b){spdOpt=b.dataset.o;showLists()}};
+    post('/api/best-speeds',{two_yo:spdOpt==='two',three_yo:false,graded:spdOpt==='gr'}).then(function(r){drawRuns(r.rows||[],r.truncated)}).catch(fail)
+  }else if(listSel==='debuts'){
+    opts.innerHTML='';
+    post('/api/first-time-starters',{}).then(function(r){drawRuns(r.rows||[],r.truncated)}).catch(fail)
+  }else{
+    opts.innerHTML='<form class="sbox" id="rf" style="margin-bottom:6px"><input id="rq" type="search" placeholder="Find a trainer" aria-label="Find a trainer" autocomplete="off" autocapitalize="off"></form>';
+    post('/api/owner-rankings',{}).then(function(r){
+      var rows=r.rows||[];function draw(f){var a=f?rows.filter(function(x){return String(x.oname).toLowerCase().indexOf(f)>=0}):rows;l.innerHTML='';if(!a.length){l.innerHTML='<div class="empty">No trainer matches.</div>';return}
+        pager(a,function(x){return '<button class="row" data-own="'+esc(x.oname)+'"><div class="rank">'+x.rank+'</div><div class="main"><div class="nm">'+esc(x.oname)+'</div><div class="meta">'+num(x.starts)+' starts &middot; '+x.wins+'-'+x.seconds+'-'+x.thirds+' &middot; '+num(x.win_pct,1)+'% wins</div></div><div class="big gold">'+money(x.earn)+'<small>earned</small></div></button>'},25,l)}
+      draw('');$('#rf').onsubmit=function(e){e.preventDefault()};$('#rq').oninput=function(){draw(this.value.trim().toLowerCase())};
+      l.onclick=function(e){var b=e.target.closest('button.row');if(b&&b.dataset.own){kindSel='owner';lastQ={kind:'owner',q:b.dataset.own};openTrainer(b.dataset.own)}}
+    }).catch(fail)
+  }
+  function fail(e){l.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'}
+  function drawRuns(rows,trunc){l.innerHTML='';if(!rows.length){l.innerHTML='<div class="empty">Nothing to show.</div>';return}
+    pager(rows,runRow,25,l);l.onclick=function(e){var b=e.target.closest('button.row');if(b&&b.dataset.hid)openHorse(b.dataset.hid)}}
+}
+function openTrainer(name){
+  app.innerHTML=sk(5);
+  post('/api/search',{kind:'owner',name:name,hid:'',first_week:'',last_week:''}).then(function(r){history.pushState({v:'t'},'');renderTrainer(r,name)}).catch(function(e){app.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
+}
+window.addEventListener('popstate',function(){if(view.tab==='lists'){showLists();return}showSearch();if(lastQ.q&&lastQ.kind===kindSel)runSearch(lastQ.q,true)});
+$('#nsearch').onclick=function(){showSearch()};
+$('#nlists').onclick=function(){showLists()};
+showSearch();
+})();
+</script>
+</body>
+</html>
