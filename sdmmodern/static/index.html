@@ -639,6 +639,7 @@ html[data-theme="glass"] table{border-collapse:separate;border-spacing:0 8px}
 html[data-theme="glass"] thead th{background:rgba(10,16,32,.75);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid rgba(160,190,255,.16);font-weight:600;color:var(--mute)}
 html[data-theme="glass"] thead th+th,html[data-theme="glass"] tbody td+td{border-left:0}
 html[data-theme="glass"] tbody td{background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035))!important;border:0;border-top:1px solid rgba(255,255,255,.10);border-bottom:1px solid rgba(0,0,0,.25);transition:background .2s}
+html[data-theme="glass"] tbody tr:nth-child(even) td{background:linear-gradient(180deg,rgba(var(--glr),.24),rgba(var(--glr),.13))!important}
 html[data-theme="glass"] tbody td:first-child{border-radius:14px 0 0 14px;border-left:1px solid rgba(255,255,255,.10)}
 html[data-theme="glass"] tbody td:last-child{border-radius:0 14px 14px 0;border-right:1px solid rgba(255,255,255,.08)}
 html[data-theme="glass"] tbody tr{filter:drop-shadow(0 6px 10px rgba(0,0,0,.28));transition:transform .18s,filter .18s}
@@ -652,6 +653,9 @@ html[data-theme="glass"] tbody tr.P td:first-child{border-left:4px solid var(--p
 html[data-theme="glass"] tbody tr.farm td{background:linear-gradient(180deg,rgba(74,140,255,.25),rgba(74,140,255,.10))!important}
 html[data-theme="glass"] td[data-k="hname"]{text-transform:none;letter-spacing:.01em;font-weight:650}
 html[data-theme="glass"] td[data-k="track"]{letter-spacing:.14em;color:var(--mute)}
+/* speed: the frosted blur over a scrolling list was redrawn on every scroll step; the header also sat under the rows */
+html[data-theme="glass"] #menubar,html[data-theme="glass"] #search,html[data-theme="glass"] #gridwrap,html[data-theme="glass"] #side,html[data-theme="glass"] thead th{-webkit-backdrop-filter:none;backdrop-filter:none}
+html[data-theme="glass"] thead th{z-index:3;background:#0a1020}
 html[data-theme="glass"] .pos{width:30px;height:30px;font-weight:800;border:0;background:rgba(255,255,255,.08);box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 3px 8px rgba(0,0,0,.4)}
 html[data-theme="glass"] .pos.p1{background:var(--win);box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 0 18px rgba(255,200,90,.55),0 4px 10px rgba(0,0,0,.4)}
 html[data-theme="glass"] .pos.p2{background:var(--place);box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 4px 10px rgba(0,0,0,.4)}
@@ -670,7 +674,7 @@ html[data-theme="glass"] .cand{background:rgba(255,255,255,.06)}
 html[data-theme] #side>*{margin-left:22px!important;margin-right:22px!important}
 html[data-theme] #side>table{width:calc(100% - 44px)!important;box-sizing:border-box}
 html[data-theme] #side .mini td.rk{width:1%;white-space:nowrap;text-align:right;padding-right:2px;color:var(--mute);font-variant-numeric:tabular-nums}
-html[data-theme="glass"] thead th{background:rgba(10,16,32,.97)}
+html[data-theme="glass"] thead th{background:#0a1020}
 /* floating panels and dialogs sit over the list, so they are solid, not see-through */
 html[data-theme="glass"] dialog,html[data-theme="glass"] .drop,html[data-theme="glass"] #themepop,html[data-theme="glass"] .colpop{background:linear-gradient(180deg,#16203a,#0e1527)!important;-webkit-backdrop-filter:none;backdrop-filter:none;border:1px solid rgba(170,200,255,.22);box-shadow:0 30px 70px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.1) inset}
 html[data-theme] tbody tr.trline td{border-top:3px solid #ff86b8}
@@ -1137,15 +1141,21 @@ function render(){
     if(k==='racenum'&&v==='')return '<td></td>';
     if(k==='racenum')return `<td data-k="${k}" class="${c||''}"><a href="#" class="racelink" title="Open this race, first to last">${esc(v)}</a></td>`;
     return `<td data-k="${k}" class="${c||''} ${k==='fin'&&r.fin===1?'win':''} ${SPDK.has(k)?'spd':''}">${BADGE(k,v,r)}</td>`}).join('')+'</tr>';
-  // Draw the first screenful at once and the rest in small batches, so a long list never freezes the page.
-  const tb=$('#grid tbody'),token=++renderToken,FIRST=300,BATCH=600;
+  // Draw the first rows at once and add more only as you scroll toward the end. A list of thousands of rows
+  // made every resize and every column change slow, because the browser re-measured all of them.
+  const tb=$('#grid tbody'),token=++renderToken,FIRST=300,BATCH=300,sc=$('#scroll');
   tb.innerHTML=view.slice(0,FIRST).map(rowHtml).join('');
   fitCols();
   let pos=FIRST;
-  const more=()=>{if(token!==renderToken||pos>=view.length)return;
-    tb.insertAdjacentHTML('beforeend',view.slice(pos,pos+BATCH).map((r,j)=>rowHtml(r,pos+j)).join(''));pos+=BATCH;setTimeout(more,0)};
-  if(view.length>FIRST)setTimeout(more,0);
+  const draw=n=>{if(token!==renderToken||pos>=view.length)return false;
+    tb.insertAdjacentHTML('beforeend',view.slice(pos,pos+n).map((r,j)=>rowHtml(r,pos+j)).join(''));pos+=n;return true};
+  const need=()=>sc.scrollTop+sc.clientHeight*3>sc.scrollHeight-300;
+  const more=()=>{if(draw(BATCH)&&need())setTimeout(more,0)};
+  window.__rowsMore=()=>{if(token===renderToken&&pos<view.length&&need())more()};
+  window.__rowsFill=px=>{let g=0;while(token===renderToken&&pos<view.length&&sc.scrollHeight<px+sc.clientHeight*2&&g++<60)draw(BATCH)};
+  setTimeout(window.__rowsMore,0);
 }
+$('#scroll').addEventListener('scroll',()=>{if(window.__rowsMore)window.__rowsMore()},{passive:true});
 let renderToken=0;
 (function(){const tb=$('#grid tbody');
   tb.addEventListener('click',e=>{const tr=e.target.closest('tr');if(!tr)return;
@@ -1516,7 +1526,7 @@ const FORM=(()=>{
     }catch(err){}
     if(e.sk!==undefined&&(e.sk!==sortKey||!!e.sd!==sortDesc||(e.ft||'')!==$('#filter').value||(e.ag&&e.ag.join()!==[...$$('#agefil input')].map(x=>x.checked).join()))){sortKey=e.sk;sortDesc=!!e.sd;$('#filter').value=e.ft||'';if(e.ag)$$('#agefil input').forEach((x,i)=>x.checked=!!e.ag[i]);render()}
     replaying=false;e.label=label(e);
-    const back=()=>{$('#scroll').scrollTop=e.sc||0;$('#side').scrollTop=e.ss||0};
+    const back=()=>{if(e.sc&&window.__rowsFill)window.__rowsFill(e.sc);$('#scroll').scrollTop=e.sc||0;$('#side').scrollTop=e.ss||0};
     requestAnimationFrame(back);setTimeout(back,350)}
   const _run=run;
   run=async function(extra){claimBtn('');const e=begin({form:snap(),extra:extra||null});const v=await _run(extra);if(e&&!e.btn){e.label=label(e);}return v};
