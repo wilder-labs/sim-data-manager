@@ -170,36 +170,6 @@ dialog .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .lbp{text-align:right;color:var(--mute)}.lbn{text-align:center;border-radius:3px;font-weight:700;padding:1px 0}
 .lbname{min-width:0}.lbname b,.lbname small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lbname small{color:var(--mute);font-size:10px}
 .lbg,.lbs{text-align:right;font-variant-numeric:tabular-nums}.vnote{margin-top:6px}
-#sirefind{display:block;flex:none;min-width:170px;padding:8px 12px;font-size:15px;font-weight:700;color:#fff;background:#6d4bb5;border:2px solid #523990;border-radius:6px;box-shadow:0 2px 0 #523990;text-align:center}
-#sirefind:hover{background:#8160cc}#sirefind:active{transform:translateY(2px);box-shadow:none}
-#sirewin{width:min(1220px,97vw);max-width:none;height:92vh;padding:0;overflow:hidden}
-#sirewin[open]{display:flex;flex-direction:column}
-#sirewin .sbar{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:8px 14px;background:#2b2a26;color:#f1ead6;font-size:14px}
-#sirewin .sbar button{font-size:12px;padding:3px 10px;color:#222;background:#f1ead6;border:1px solid #bdb59b;border-radius:3px;cursor:pointer}
-#sirewin .stabs{display:flex;gap:6px;flex:1;margin-left:14px}
-#sirewin .stabs button.on{background:#6d4bb5;color:#fff;border-color:#8160cc}
-#sirewin .sh{font-style:normal;background:#c2410c;color:#fff;border-radius:9px;padding:0 7px;margin-left:4px;font-size:11px}
-#sirewin .sbody{flex:1;overflow:auto;padding:10px 14px 30px}
-#sirewin .sctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0}
-#sirewin .sctl label{display:flex;gap:5px;align-items:center;font-size:13px}
-#sirewin .chips{display:flex;gap:4px}
-#sirewin .chip.on{background:#6d4bb5;color:#fff;border-color:#523990}
-#sirewin .sm{font-size:12px;color:var(--mut,#666)}
-#sirewin table.stab{border-collapse:collapse;width:100%;margin-top:6px}
-#sirewin .stab th{position:sticky;top:-10px;background:var(--panel);text-align:left;font-size:12px;padding:4px 8px;border-bottom:2px solid var(--line);white-space:nowrap;cursor:default}
-#sirewin .stab th[data-k]{cursor:pointer}
-#sirewin .stab td{padding:3px 8px;font-size:13px;border-bottom:1px solid var(--line);white-space:nowrap}
-#sirewin .stab .n{text-align:right;font-variant-numeric:tabular-nums}#sirewin .stab .c{text-align:center}#sirewin .stab .nm{font-weight:700}
-#sirewin .stab tr.only3 td{background:rgba(220,38,38,.24)}
-#sirewin .stab tr.hit td{background:#fde8c8}#sirewin .b{font-weight:900;color:#c2410c}
-#sirewin .badge{background:#c2410c;color:#fff;border-radius:3px;padding:1px 6px;font-size:11px;font-weight:700}
-#sirewin .star{background:none;border:0;font-size:18px;cursor:pointer;color:#999;padding:0 4px}#sirewin .star.on{color:#e0a800}
-#sirewin .lk.nmlk{font-size:13px;font-weight:700;color:inherit;text-decoration:none}#sirewin .lk.nmlk:hover{text-decoration:underline;color:#6d4bb5}
-#sirewin .lk{background:none;border:0;color:#2563a8;text-decoration:underline;cursor:pointer;padding:0;font-size:12px}
-#sirewin .sempty{padding:30px;text-align:center;color:var(--mut,#666)}
-#sirewin .shist{border:1px solid var(--line);padding:8px 10px;margin:6px 0 10px;border-radius:4px}#sirewin .hrow{display:flex;gap:16px;align-items:flex-start;margin:6px 0}
-#sirebanner{position:fixed;right:16px;bottom:16px;z-index:9999;background:#c2410c;color:#fff;border-radius:6px;padding:10px 34px 10px 14px;box-shadow:0 4px 14px #0006;cursor:pointer;max-width:420px;font-size:14px}
-#sirebanner[hidden]{display:none}#sirebanner button{position:absolute;right:6px;top:2px;background:none;border:0;color:#fff;font-size:20px;cursor:pointer}
 #newown.dim,#bestspd.dim,#stakes.dim,#debut.dim,#claims.dim,#ownrank.dim,#newown.dim:hover,#bestspd.dim:hover,#stakes.dim:hover,#debut.dim:hover,#claims.dim:hover,#ownrank.dim:hover{background:#8a8a8a;border-color:#6f6f6f;box-shadow:none;color:#e4e4e4;cursor:not-allowed;opacity:.6;transform:none}
 
 
@@ -563,7 +533,6 @@ html[data-theme] #empty::before{content:"";display:block;width:96px;height:96px;
  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill-rule='evenodd' d='M20 90C6 72 4 40 22 21 36 7 64 7 78 21 96 40 94 72 80 90H62C69 72 71 52 62 41 56 33 44 33 38 41 29 52 31 72 38 90ZM17 70a3.5 3.5 0 1 0 .1 0ZM15 54a3.5 3.5 0 1 0 .1 0ZM19 38a3.5 3.5 0 1 0 .1 0ZM29 24a3.5 3.5 0 1 0 .1 0ZM44 17a3.5 3.5 0 1 0 .1 0ZM60 17a3.5 3.5 0 1 0 .1 0ZM75 24a3.5 3.5 0 1 0 .1 0ZM85 38a3.5 3.5 0 1 0 .1 0ZM89 54a3.5 3.5 0 1 0 .1 0ZM87 70a3.5 3.5 0 1 0 .1 0Z'/%3E%3C/svg%3E") center/contain no-repeat;
  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill-rule='evenodd' d='M20 90C6 72 4 40 22 21 36 7 64 7 78 21 96 40 94 72 80 90H62C69 72 71 52 62 41 56 33 44 33 38 41 29 52 31 72 38 90ZM17 70a3.5 3.5 0 1 0 .1 0ZM15 54a3.5 3.5 0 1 0 .1 0ZM19 38a3.5 3.5 0 1 0 .1 0ZM29 24a3.5 3.5 0 1 0 .1 0ZM44 17a3.5 3.5 0 1 0 .1 0ZM60 17a3.5 3.5 0 1 0 .1 0ZM75 24a3.5 3.5 0 1 0 .1 0ZM85 38a3.5 3.5 0 1 0 .1 0ZM89 54a3.5 3.5 0 1 0 .1 0ZM87 70a3.5 3.5 0 1 0 .1 0Z'/%3E%3C/svg%3E") center/contain no-repeat}
 html[data-theme] dialog{border:1px solid var(--cardline);background:var(--panel);color:var(--ink)}
-html[data-theme] #sirebanner{border-radius:var(--rb)}
 
 /* ---- segmented "type of search" and age chips ---- */
 html[data-theme] #search fieldset:first-child{display:flex;flex-wrap:wrap;align-items:center}
@@ -729,18 +698,12 @@ html[data-theme="glass"][data-glow="studio"] body{background-color:#061a33}
     <label id="lblyr" style="display:none" title="Trainer search: only count races from January 1 of this year on"><input type="checkbox" id="thisyr">This year only</label>
   </fieldset>
   <div><button class="primary" type="submit">Search</button> <button type="button" id="clear">Clear</button></div>
-  <fieldset id="mystfs"><legend>My stables</legend>
-    <input type="text" id="mystable" size="12" placeholder="e.g. unreal" title="Your master stable name on eHorseRacing. The app finds every stable under it and searches them all.">
-    <button type="button" id="mystables" title="Looks up every stable under this name on eHorseRacing, then lists all their races as a Trainer search.">Search my stables</button>
-  </fieldset>
   <fieldset><legend>Quick lists</legend>
     <div id="ownrow"><button type="button" id="newown" title="Each horse's last race for the old trainer and its first race for the new one. Limited to this calendar year: the first race under the new trainer must be on or after January 1. The First and Last date boxes can narrow it further.">&#9733; First Time New Trainer</button>
       <div id="ownnote">Click once and wait. Gold = working, green = done. First Time New Trainer can take a minute after new data. *CPU stables skipped.</div>
       <button type="button" id="bestspd" title="Every horse that ran in the newest 30 racing days, ranked by its fastest race in that period. The date boxes are not used.">&#9889; Best Speeds Last 30 Days</button>
       <button type="button" id="stakes" title="Every stakes race (stakes and graded) this calendar year, counted from January 1 to the newest race in the database. One row per race, with the winner.">&#127942; Stakes Races This Year</button>
       <button type="button" id="debut" title="Horses whose very first race came this calendar year, one row each (the debut), fastest speed figure first. The sidebar covers all of them.">&#127775; First Time Starters This Year</button>
-      <button type="button" id="claims" title="Reads the eHorseRacing race schedule for every claiming race in the next two days and lists each entered horse with its last race, the track it runs at and the claim price.">&#128176; Claim Finder: Next 2 Days</button>
-      <button type="button" id="sirefind" title="Browse the public sire list (2 year old sires, sort by BP or credits) and watch sire prices: you set a limit and SDM warns you when a price drops to it.">&#128014; Sire Finder &amp; Price Watch</button>
       <button type="button" id="ownrank" title="Every trainer with at least 25 runners this calendar year, ranked by wins. Click any column heading to re-sort. Computer-run stables (names starting with *) are left out.">&#127941; Trainer Rankings This Year</button></div>
   </fieldset>
 </form>
@@ -763,7 +726,6 @@ html[data-theme="glass"][data-glow="studio"] body{background-color:#061a33}
 <dialog id="vwr"></dialog>
 <dialog id="cardwin"></dialog>
 <dialog id="rform"></dialog>
-<dialog id="sirewin"></dialog>
 
 <script>
 "use strict";
@@ -791,7 +753,6 @@ const CURCOLS=[['rank','#','num'],['hname','Horse'],['hid','ID','num'],['oname',
 const SPDCOLS=[['rank','#','num'],['runs','Runs','num'],...BASECOLS];
 const CHGCOLS=[['pair','Pair','num'],['chg','Change'],...BASECOLS];
 const STBLCOLS=[['stable','Stable'],['hname','Horse'],['hid','ID','num'],['sire','Sire'],['plan','Plan'],['plan_date','Plan date'],['health','Health'],['bred','Bred'],['h_age','Age','num'],['h_sex','Sex'],['starts','R','num'],['wins','W','num'],['places','P','num'],['shows','S','num'],['money','Earned','num'],['site_last','Last race (site)'],['racenum','Last race (SDM)'],['days_off','Days off','num'],['track','Track'],['race_no','Race #','num'],['sp','Speed','num'],['fin','Fin','num'],['dist','Dist','num'],['surf','Surf'],['cond','Cond'],['restr','Race type'],['odds','Odds','num'],['earn','Last race earned','num']];
-const CLMCOLS=[['run_date','Runs'],['run_time','Post time'],['run_track','Track today'],['claim','Claim price','num'],['run_age','Race age'],['run_cond','Conditions'],['run_type','Race type'],['pgm','Pgm','num'],['hname','Horse'],['hid','ID','num'],['entered_by','Entered by'],['starts','Career races','num'],['wins','Career wins','num'],['date','Last race'],['days','Days off','num'],['track','Track'],['race_no','Race #','num'],['sp','Speed','num'],['fin','Fin','num'],['size','Size','num'],['dist','Dist','num'],['surf','Surf'],['cond','Cond'],['restr','Race type'],['sire','Sire'],['odds','Odds','num'],['earn','Earned','num'],['run_dist','Dist today','num'],['run_surf','Surface today']];
 let COLS=BASECOLS;
 let rows=[],view=[],sortKey=null,sortDesc=false,last=null,sel=null;
 
@@ -807,7 +768,7 @@ $$('input[name=kind]').forEach(r=>r.addEventListener('change',()=>{
   $('#fldid').style.display=k==='horse'?'':'none';$('#lblco').style.display=k==='horse'?'':'none';$('#lblcur').style.display=k==='owner'?'':'none';$('#lblyr').style.display=k==='owner'?'':'none'}));
 $('#clear').onclick=()=>{$('#search').reset();$('#name').focus()};
 $('#search').addEventListener('submit',e=>{e.preventDefault();run()});
-const QUICK=['#newown','#bestspd','#stakes','#debut','#claims','#ownrank'];
+const QUICK=['#newown','#bestspd','#stakes','#debut','#ownrank'];
 // while one quick list is working, the others are greyed out and cannot be clicked until its results come back
 function syncQuick(){const bs=QUICK.map(s=>$(s)).filter(Boolean),busy=bs.some(b=>b.classList.contains('busy'));
   bs.forEach(b=>{const me=b.classList.contains('busy');b.disabled=me||busy;b.classList.toggle('dim',busy&&!me)})}
@@ -819,7 +780,6 @@ function mkBtn(id,label,busyText,doneText){return state=>{const b=$(id);b.classL
 const ownBtn=mkBtn('#newown','\u2605 First Time New Trainer','Working\u2026 please wait','\u2714 First time new trainer shown');
 const rankBtn=mkBtn('#ownrank','\uD83C\uDFC5 Trainer Rankings This Year','Working\u2026 please wait','\u2714 Rankings shown');
 const stkBtn=mkBtn('#stakes','\uD83C\uDFC6 Stakes Races This Year','Working\u2026 please wait','\u2714 Stakes shown');
-const claimBtn=mkBtn('#claims','\uD83D\uDCB0 Claim Finder: Next 2 Days','Reading the schedule\u2026 please wait','\u2714 Claim finder shown');
 const debBtn=mkBtn('#debut','\uD83C\uDF1F First Time Starters This Year','Working\u2026 please wait','\u2714 First time starters shown');
 const spdBtn=mkBtn('#bestspd','\u26A1 Best Speeds Last 30 Days','Working\u2026 please wait','\u2714 Best speeds shown');
 $('#newown').onclick=async()=>{
@@ -851,22 +811,6 @@ $('#debut').onclick=async()=>{
     $('#count').textContent=rows.length?`${d.count.toLocaleString()} first time starters in ${d.year}`+(r.truncated?`. Showing the fastest ${d.shown.toLocaleString()}`:''):'No first time starters this year.';
   }catch(err){debBtn('');$('#count').textContent='';alertBox(err.message)}
 };
-$('#claims').onclick=async()=>{
-  if($('#claims').disabled)return;claimBtn('busy');ownBtn('');spdBtn('');stkBtn('');rankBtn('');debBtn('');
-  $('#count').textContent='Reading the race schedule from eHorseRacing… this can take up to a minute.';
-  try{
-    const r=await post('/api/claim-finder',{});last=r;COLS=CLMCOLS;
-    rows=r.rows;sortKey=null;$('#filter').value='';render();claimSide(r);claimBtn(rows.length?'on':'');
-    const c=r.claims;
-    $('#count').textContent=rows.length?`${c.horses.toLocaleString()} horses in ${c.races.toLocaleString()} claiming races, ${c.first_date} to ${c.last_date}`:`No claiming races found for ${c.first_date} to ${c.last_date}.`;
-  }catch(err){claimBtn('');$('#count').textContent='';alertBox(err.message)}
-};
-function claimSide(r){
-  const c=r.claims,h=$('#side'),n=v=>Number(v).toLocaleString();
-  h.innerHTML=`<h3>Claim finder</h3><div class="small">${c.first_date} to ${c.last_date}, from the eHorseRacing race schedule. One line per entered horse with its last race in your database. Click a horse name or ID to open its record. Sort or filter any column.</div>
-  <div class="kv"><span>Claiming races</span><b>${n(c.races)}</b><span>Horses entered</span><b>${n(c.horses)}</b><span>No race on record</span><b>${n(c.debuts)}</b></div>
-  <h4>Where they run</h4><table class="mini"><tr><th>Track</th><th class="num">Races</th><th class="num">Horses</th><th class="num">Claim price</th></tr>`
-  +c.tracks.map(t=>`<tr><td>${esc(t.code)}<div class="small">${esc(t.track)}</div></td><td class="num">${t.races}</td><td class="num">${t.horses}</td><td class="num">${t.lo==null?'':(t.lo===t.hi?short$(t.lo):short$(t.lo)+' to '+short$(t.hi))}</td></tr>`).join('')+'</table>'}
 function debutSide(r){
   const d=r.debuts,S=d.stats,L=d.leaders,h=$('#side');
   if(!r.rows.length){h.innerHTML='<div class="small">No first time starters this year.</div>';return}
@@ -1068,7 +1012,7 @@ function fitCols(){
   $('#band').checked=on;$('#grid').classList.toggle('banded',on);
   $('#band').onchange=()=>{const v=$('#band').checked;$('#grid').classList.toggle('banded',v);try{localStorage.setItem('sdm_band',v?'1':'0')}catch(e){}}}
 // ---- column layout: order and visibility are remembered separately for each kind of list
-const VIEWNAMES=new Map([[BASECOLS,'races'],[STKCOLS,'stakes'],[OWNCOLS,'trainers'],[DEBCOLS,'debuts'],[CURCOLS,'current'],[SPDCOLS,'speeds'],[CHGCOLS,'changes'],[CLMCOLS,'claims'],[STBLCOLS,'stables']]);
+const VIEWNAMES=new Map([[BASECOLS,'races'],[STKCOLS,'stakes'],[OWNCOLS,'trainers'],[DEBCOLS,'debuts'],[CURCOLS,'current'],[SPDCOLS,'speeds'],[CHGCOLS,'changes'],[STBLCOLS,'stables']]);
 let LAYOUT={};try{LAYOUT=JSON.parse(localStorage.getItem('sdm_layout')||'{}')}catch(e){}
 function saveLayout(){try{localStorage.setItem('sdm_layout',JSON.stringify(LAYOUT))}catch(e){}}
 const viewName=()=>VIEWNAMES.get(COLS)||'other';
@@ -1099,7 +1043,7 @@ function ageSel(){const a=[...document.querySelectorAll('#agefil input:checked')
 function ageGrp(r){let a=null;
   if(typeof STBLCOLS!=='undefined'&&COLS===STBLCOLS)a=r.h_age;
   else if(COLS===CURCOLS)a=r.age;
-  else{const d=(COLS===CLMCOLS?(r.run_date||''):(r.date||''))||new Date().toISOString(),h=String(r.hid==null?'':r.hid);
+  else{const d=(r.date||'')||new Date().toISOString(),h=String(r.hid==null?'':r.hid);
     if(h.length>=9&&/^\d{4}/.test(d))a=Number(d.slice(0,4))-1997-Number(h.slice(0,2))}
   a=(a==null||a==='')?NaN:Number(a);return isNaN(a)?null:(a<=2?2:a===3?3:4)}
 function BADGE(k,v,r){if(v===''||v==null)return '';
@@ -1170,18 +1114,6 @@ $$('#agefil input').forEach(c=>c.onchange=()=>{if(rows.length)render()});
 function ctx(x,y){const m=$('#ctx');m.innerHTML=`<button data-c="h">List horse: ${esc(sel.hname)}</button><button data-c="o">List trainer: ${esc(sel.oname)}</button><button data-c="r">List race ${sel.track} #${sel.race_no} (${sel.date})</button><button data-c="f">Filter this list to this horse</button><button data-c="x">Reset filter and sorting</button>`;
   m.style.left=Math.min(x,innerWidth-230)+'px';m.style.top=Math.min(y,innerHeight-170)+'px';m.style.display='block';
   m.onclick=e=>{const c=e.target.dataset.c;if(c==='h')listHorse();if(c==='o')listOwner();if(c==='r')listRace();if(c==='f'){$('#filter').value=sel.hname;render()}if(c==='x'){$('#filter').value='';sortKey=null;render()}}}
-try{$('#mystable').value=localStorage.getItem('sdm_mystable')||''}catch(e){}
-$('#mystables').onclick=async()=>{
-  const nm=$('#mystable').value.trim();if(!nm){alertBox('Type your stable name first, for example unreal.');return}
-  $('#count').textContent='Finding your stables…';
-  let d;try{d=await (await fetch('/api/my-stables?name='+encodeURIComponent(nm))).json()}catch(e){d={names:[]}}
-  if(d.error){alertBox(d.error);return}
-  if(!d.names||!d.names.length){alertBox(d.offline?'Could not reach eHorseRacing, and no list is saved for that name yet.':'No stables found for that name.');return}
-  try{localStorage.setItem('sdm_mystable',nm)}catch(e){}
-  setKind('owner');$('#cur').checked=false;$('#name').value=d.names.join(',');$('#hid').value='';
-  await run({first_week:'',last_week:''});
-  if(d.offline)$('#count').textContent+=' (saved stable list, site not reachable)';
-};
 $('#side').addEventListener('click',e=>{const a=e.target.closest('a.sidehorse');if(!a)return;e.preventDefault();
   const hid=a.dataset.hid;if(!/^\d+$/.test(hid))return;
   $('#cur').checked=false;setKind('horse');$('#name').value='';$('#hid').value=hid;run({hid,name:'',first_week:'',last_week:''})});
@@ -1201,11 +1133,6 @@ function listOwner(){$('#cur').checked=false;setKind('owner');$('#name').value=s
 function listRace(){setKind('race');$('#name').value=Number(sel.racenum).toFixed(4);$('#hid').value='';run({first_week:'',last_week:''})}
 
 // ---- side panel
-function fillMasters(F){
-  const names=[...new Set(F.horses.map(x=>x.trainer).filter(t=>t&&!t.startsWith('*')))];if(!names.length)return;
-  fetch('/api/stable-masters?names='+encodeURIComponent(names.join(','))).then(x=>x.json()).then(d=>{
-    $$('#side .mst').forEach(el=>{const t=el.dataset.t,m=d.masters&&d.masters[t];
-      if(m&&m.toLowerCase()!==t.toLowerCase())el.textContent=' ('+m+')'})}).catch(()=>{})}
 function raceField(F){
   if(!F)return '';
   const sp=v=>v>0?v.toFixed(1):'',w=(v,f)=>f===1?`<b>${sp(v)}</b> W`:sp(v);
@@ -1237,7 +1164,7 @@ function showSide(r,q){
     const cond=`<h4>Conditions</h4><div class="kv">
     <span>Distance</span><b>${fmt(x.dist,1)} f</b><span>Surface / condition</span><b>${esc(x.surf)} / ${esc(condName(x.surf,x.cond))}</b><span>Age</span><b>${esc(x.age)}</b><span>Race type</span><b>${esc(x.restr)}</b>
     <span>Purse</span><b>${money(x.purse)}</b><span>Claim price</span><b>${money(x.cprice)}</b><span>Runners</span><b>${x.runners}</b></div>`;
-    h.innerHTML=`<h3>${esc(x.track)} race ${x.race_no}</h3><div class="small">${x.date} &middot; race ID ${Number(x.racenum).toFixed(4)}</div><div class="row" style="margin:8px 0"><button type="button" class="primary" id="sdmform" title="Newspaper-style past performances for every runner">&#128240; SDM Racing Form</button></div>`+(x.raceid?`<div class="row" style="margin:8px 0;gap:8px">`+`<a class="viewerlink" href="https://v2.raceviewer.com/viewer_2d/viewer_2d.py?raceid=${x.raceid}" target="_blank" rel="noopener" title="Open the replay on raceviewer.com">Replay on old viewer</a></div>`:'')+raceField(r.field)+cond;fillMasters(r.field);{const fb=$('#sdmform');if(fb)fb.onclick=()=>FORM.open(x.racenum)}$$('#side tr[data-hid]').forEach(tr=>tr.onclick=()=>{if(!/^\d+$/.test(tr.dataset.hid))return;setKind('horse');$('#name').value='';$('#hid').value=tr.dataset.hid;run({hid:tr.dataset.hid,name:''})});return}
+    h.innerHTML=`<h3>${esc(x.track)} race ${x.race_no}</h3><div class="small">${x.date} &middot; race ID ${Number(x.racenum).toFixed(4)}</div><div class="row" style="margin:8px 0"><button type="button" class="primary" id="sdmform" title="Newspaper-style past performances for every runner">&#128240; SDM Racing Form</button></div>`+(x.raceid?`<div class="row" style="margin:8px 0;gap:8px">`+`<a class="viewerlink" href="https://v2.raceviewer.com/viewer_2d/viewer_2d.py?raceid=${x.raceid}" target="_blank" rel="noopener" title="Open the replay on raceviewer.com">Replay on old viewer</a></div>`:'')+raceField(r.field)+cond;{const fb=$('#sdmform');if(fb)fb.onclick=()=>FORM.open(x.racenum)}$$('#side tr[data-hid]').forEach(tr=>tr.onclick=()=>{if(!/^\d+$/.test(tr.dataset.hid))return;setKind('horse');$('#name').value='';$('#hid').value=tr.dataset.hid;run({hid:tr.dataset.hid,name:''})});return}
   if(!s&&r.kind==='horse'&&/^\d{9,10}$/.test(String(q.hid||''))){const hid=String(q.hid);
     h.innerHTML=`<h3>Horse ID ${hid}</h3><div class="small">No races on record in the database for this horse yet.</div><div class="small" id="sireline"></div>`+simLink(hid);
     fetch('/api/sire?hid='+hid).then(x=>x.json()).then(d=>{const el=$('#sireline');if(el)el.innerHTML=d.sire?`Sire: <b>${esc(d.sire)}</b>`:''}).catch(()=>{});return}
@@ -1258,10 +1185,6 @@ function showSide(r,q){
   if(s.by_type.length)o+=`<h4>Speed by surface and distance</h4><table class="mini"><tr><th>Surface</th><th></th><th class="num">Runs</th><th class="num">Avg</th><th class="num">Best</th>${r.kind==='horse'?'':'<th>Horse</th>'}</tr>`+s.by_type.map(t=>`<tr><td>${t.surface}</td><td>${t.dist}</td><td class="num">${t.n}</td><td class="num">${t.avg}</td><td class="num">${t.max}</td>${r.kind==='horse'?'':`<td>${t.hid?`<a href="#" class="sidehorse" data-hid="${t.hid}">${esc(t.hname||'')}</a>`:(t.hname===undefined?'<span class="small">restart the app</span>':'')}</td>`}</tr>`).join('')+`</table><div class="small">Sprint is under 8 furlongs, Route is 8 to under 12, Long is 12 and up.</div>`;
   if(r.stable){o+=`<h4>Horses (${r.stable.length}), by total earnings</h4><table class="mini"><tr><th>Horse</th><th>Last ran</th><th class="num">Runs</th><th class="num">W-P-S</th><th class="num">Earned</th><th class="num">Best</th></tr>`+r.stable.map(t=>`<tr data-hid="${t.hid}" style="cursor:pointer"><td>${esc(t.hname)}</td><td class="small">${t.last_date}</td><td class="num">${t.starts}</td><td class="num">${t.w}-${t.p}-${t.s}</td><td class="num">${money(t.earn)}</td><td class="num">${fmt(t.max_speed,1)}</td></tr>`).join('')+`</table>`}
   h.innerHTML=o;$$('#side tr[data-hid]').forEach(tr=>tr.onclick=()=>{if(!/^\d+$/.test(tr.dataset.hid))return;setKind('horse');$('#name').value='';$('#hid').value=tr.dataset.hid;run({hid:tr.dataset.hid,name:''})});
-  if(r.kind==='owner'&&q.name&&!/[*,]/.test(q.name)){const nm=q.name.trim();
-    fetch('/api/stable-group?name='+encodeURIComponent(nm)).then(x=>x.json()).then(d=>{const el=$('#grp');
-      if(!el||!d.master||d.master.toLowerCase()===nm.toLowerCase())return;
-      el.innerHTML=` (<a href="#" class="grplink" data-names="${esc((d.names||[]).join(','))}" title="Search all ${(d.names||[]).length} stables in this group">${esc(d.master)}</a>)`}).catch(()=>{})}
   if(r.kind==='horse'&&s.horse){const hid=s.horse.hid;
     const put=t=>{const el=$('#sireline');if(!el)return;el.innerHTML=t};
     put('');
@@ -1386,8 +1309,8 @@ const actions={
  exit(){dialog(`<h3>Exit Sim Data Manager?</h3><div class="small">This closes the program. A download that is still running will stop; you can start it again later and it picks up where it left off.</div><div class="btns"><button type="button" onclick="closeDlg()">Cancel</button><button type="button" class="primary" id="exgo">Exit</button></div>`);
   $('#exgo').onclick=async()=>{try{await api('/api/quit',{method:'POST',headers:UPD.H,body:'{}'})}catch(e){}
    document.body.innerHTML='<p style="padding:30px;font:16px sans-serif">Sim Data Manager has closed. You can close this window.</p>'}},
- about(){dialog(`<h3>Sim Data Manager <span class="small" style="font-weight:400">version 0.9.2</span></h3><div class="small">A <a href="https://wilderlabs.studio" target="_blank" rel="noopener">Wilder Labs Studio</a> product. <a href="https://wilderlabs.studio" target="_blank" rel="noopener">wilderlabs.studio</a></div><div class="small" style="margin-top:8px">A private research tool for the horse racing sim. It keeps every race in a database on this computer, so you can look up horses, trainers and races, and compare speed figures. Nothing leaves your computer except downloads of new race data, the public race schedule, the Find Sires table and the master stable of a trainer (one request per stable group, then saved).</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
- help(){dialog(`<h3>How to Use This</h3><div class="small"><b>Searching.</b> Pick Horse, Trainer or Race, type a name or ID, and press Search. Click any row for details in the side panel.<br><br><b>New data.</b> Open <b>Data &rarr; Get New Race Data</b> to download the latest weekly packs. The program also checks once when it starts.<br><br><b>Your stables.</b> Type your stable name in the My stables box and the program finds all of your stables for you.<br><br><b>Saving.</b> Use <b>Data &rarr; Save Results as CSV</b> to open the current list in a spreadsheet.</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
+ about(){dialog(`<h3>Sim Data Manager <span class="small" style="font-weight:400">version 0.9.2</span></h3><div class="small">A <a href="https://wilderlabs.studio" target="_blank" rel="noopener">Wilder Labs Studio</a> product. <a href="https://wilderlabs.studio" target="_blank" rel="noopener">wilderlabs.studio</a></div><div class="small" style="margin-top:8px">A private research tool for the horse racing sim. It keeps every race in a database on this computer, so you can look up horses, trainers and races, and compare speed figures. Everything you see comes from the database on this computer. Nothing is read from the sim site. The only downloads are the new race data and the shared database that you start yourself, and the update check on GitHub.</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
+ help(){dialog(`<h3>How to Use This</h3><div class="small"><b>Searching.</b> Pick Horse, Trainer or Race, type a name or ID, and press Search. Click any row for details in the side panel.<br><br><b>New data.</b> Open <b>Data &rarr; Get New Race Data</b> to download the latest weekly packs. The program also checks once when it starts.<br><br><b>Trainers.</b> To see several stables at once, type their names in the Trainer box separated by commas.<br><br><b>Saving.</b> Use <b>Data &rarr; Save Results as CSV</b> to open the current list in a spreadsheet.</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)},
  print(){if(!rows.length)return alertBox('Nothing to print yet. Run a search first.');print()},
  export(){if(!rows.length)return alertBox('No data found. You must run a search before exporting.');
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const VX=vcols();const csv=[VX.map(c=>q(c[1])).join(',')].concat(view.map(r=>VX.map(([k])=>q(r[k])).join(','))).join('\r\n');
@@ -1496,7 +1419,7 @@ const FORM=(()=>{
 
 // ---- back and forward through earlier searches and lists
 {
-  const BTNS={'#newown':'First Time New Trainer','#bestspd':'Best Speeds Last 30 Days','#stakes':'Stakes Races This Year','#debut':'First Time Starters This Year','#claims':'Claim Finder','#ownrank':'Trainer Rankings This Year'};
+  const BTNS={'#newown':'First Time New Trainer','#bestspd':'Best Speeds Last 30 Days','#stakes':'Stakes Races This Year','#debut':'First Time Starters This Year','#ownrank':'Trainer Rankings This Year'};
   let hist=[],pos=-1,replaying=false;const MAX=50;
   const snap=()=>({kind:kind(),name:$('#name').value,hid:$('#hid').value,fw:$('#fw').value,lw:$('#lw').value,co:$('#co').checked,cur:$('#cur').checked,ty:$('#thisyr').checked});
   const same=(a,b)=>JSON.stringify([a.form,a.extra,a.btn,a.pick])===JSON.stringify([b.form,b.extra,b.btn,b.pick]);
@@ -1529,7 +1452,7 @@ const FORM=(()=>{
     const back=()=>{if(e.sc&&window.__rowsFill)window.__rowsFill(e.sc);$('#scroll').scrollTop=e.sc||0;$('#side').scrollTop=e.ss||0};
     requestAnimationFrame(back);setTimeout(back,350)}
   const _run=run;
-  run=async function(extra){claimBtn('');const e=begin({form:snap(),extra:extra||null});const v=await _run(extra);if(e&&!e.btn){e.label=label(e);}return v};
+  run=async function(extra){const e=begin({form:snap(),extra:extra||null});const v=await _run(extra);if(e&&!e.btn){e.label=label(e);}return v};
   Object.keys(BTNS).forEach(id=>{const el=$(id),f=el.onclick;if(!f)return;
     el.onclick=async(...a)=>{if(el.disabled)return;const pk=undefined;const e=begin({form:snap(),btn:id,pick:pk});const v=await f.apply(el,a);if(e)e.label=BTNS[id]+(pk?': '+pk:'');return v}});
   $('#hback').onclick=()=>go(pos-1);$('#hfwd').onclick=()=>go(pos+1);
@@ -1539,148 +1462,6 @@ const FORM=(()=>{
   document.addEventListener('keydown',e=>{if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();go(pos-1)}else if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();go(pos+1)}});
   document.addEventListener('mouseup',e=>{if(e.button===3){e.preventDefault();go(pos-1)}else if(e.button===4){e.preventDefault();go(pos+1)}});
 }
-
-// ---- Sire Finder and price watch: reads the public eHorseRacing sire list, keeps daily prices, alerts on watchlist limits
-const SF=(()=>{
-  const dlg=()=>$('#sirewin');
-  const LOCS=[['all','All locations'],['usa-ky','KY - Kentucky'],['usa-ca','CA - California'],['usa-fl','FL - Florida'],['usa-ny','NY - New York'],['usa-tx','TX - Texas'],['aus-','Australia'],['gb-','Great Britain'],['ire-','Ireland'],['nz-','New Zealand'],['can-','Canada'],['jpn-','Japan'],['saf-','South Africa'],['fr-','France'],['ger-','Germany']];
-  const FIL=[['a','All'],['s','Sire'],['2','2YO Sire'],['3','3YO Sire'],['d','DS'],['g','DDS'],['j','Newer']];
-  const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}return null};
-  const st={tab:'find',filt:'2',sort:'sire_cost',name:'',loc:'all',pages:'3',maxc:'',maxb:'',rows:[],more:false,msg:'',watch:[],sk:null,sd:true,hist:null,busy:false,checking:false,lastAt:0,auto:Number(ls('sf_auto')||60)};
-  const sireLink=(id,name)=>`<b>${esc(name)}</b>`;
-  const n=v=>v==null?'':Number(v).toLocaleString();
-  const isOpen=()=>dlg().open;
-  const wmap=()=>{const m={};st.watch.forEach(w=>m[w.sire_id]=w);return m};
-  const lim=(c,b)=>(c!=null?'cr '+n(c):'')+(c!=null&&b!=null?' / ':'')+(b!=null?'BP '+n(b):'');
-  const post=(p,o)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o||{})});
-
-  function view(){
-    let r=st.rows.slice();const mc=parseInt(st.maxc,10),mb=parseInt(st.maxb,10);
-    if(!isNaN(mc))r=r.filter(x=>x.cost!=null&&x.cost<=mc);
-    if(!isNaN(mb))r=r.filter(x=>x.bp!=null&&x.bp<=mb);
-    if(st.sk){const k=st.sk,d=st.sd?-1:1;r.sort((a,b)=>{const x=a[k],y=b[k];if(x==null)return 1;if(y==null)return -1;return (x<y?-1:x>y?1:0)*d})}
-    return r}
-
-  function findHtml(){
-    const chips=FIL.map(([k,l])=>`<button type="button" data-f="${k}" class="chip${st.filt===k?' on':''}">${l}</button>`).join('');
-    const sorts=[['sire_cost','BP, highest first'],['creditcost','Credits, highest first'],['horsename','Name A to Z']].map(([k,l])=>`<option value="${k}"${st.sort===k?' selected':''}>${l}</option>`).join('');
-    const locs=LOCS.map(([k,l])=>`<option value="${k}"${st.loc===k?' selected':''}>${l}</option>`).join('');
-    const pg=[1,3,5,10,20].map(k=>`<option value="${k}"${String(st.pages)===String(k)?' selected':''}>${k*100} sires</option>`).join('');
-    const wm=wmap(),v=view();
-    const th=(k,l,cls)=>`<th data-k="${k}" class="${cls||''}">${l}${st.sk===k?(st.sd?' ▼':' ▲'):''}</th>`;
-    const body=v.map(r=>{const w=wm[r.sire_id],g=r.range||{};
-      return `<tr class="${!r.y2&&r.y3?'only3':''}"><td class="c"><button type="button" class="star${w?' on':''}" data-w="${esc(r.sire_id)}" title="${w?'On your watchlist':'Add to your watchlist'}">${w?'★':'☆'}</button></td>`
-        +`<td class="nm">${sireLink(r.sire_id,r.name)}</td><td>${esc(r.loc)}${r.loc2?' / '+esc(r.loc2):''}</td><td class="n">${n(r.cost)}</td><td class="n">${n(r.bp)}</td>`
-        +`<td class="n">${n(r.dds_bp)}</td>`
-        +`<td>${esc(r.sire_of)}</td><td class="n sm">${g.days>1?n(g.cost_lo)+'-'+n(g.cost_hi):''}</td><td class="n sm">${g.days>1?n(g.bp_lo)+'-'+n(g.bp_hi):''}</td>`
-        +`<td><button type="button" class="lk" data-h="${esc(r.sire_id)}" data-n="${esc(r.name)}">history</button></td></tr>`}).join('');
-    return `<div class="sctl"><div class="chips">${chips}</div>`
-      +`<label>Sort <select id="sf_sort">${sorts}</select></label><label>Name <input id="sf_name" value="${esc(st.name)}" size="16" placeholder="part of a name"></label>`
-      +`<label>Where <select id="sf_loc">${locs}</select></label><label>Read <select id="sf_pages">${pg}</select></label>`
-      +`<button type="button" class="primary" data-a="search"${st.busy?' disabled':''}>${st.busy?'Reading…':'Find sires'}</button></div>`
-      +`<div class="sctl"><label>Only at or under credits <input id="sf_maxc" value="${esc(st.maxc)}" size="5" inputmode="numeric"></label><label>and BP <input id="sf_maxb" value="${esc(st.maxb)}" size="5" inputmode="numeric"></label><span class="sm"><i style="display:inline-block;width:12px;height:12px;background:rgba(220,38,38,.35);vertical-align:-2px"></i> red = 3yo-only sire (no 2yo)</span>`
-      +`<span class="sm">${esc(st.msg)}</span></div>`
-      +(st.rows.length?`<table class="stab"><thead><tr><th></th>${th('name','Sire')}<th>Loc</th>${th('cost','Credits','n')}${th('bp','BP','n')}${th('dds_bp','DDS BP','n')}<th>Sire of</th><th title="Lowest to highest credit price in your saved daily prices, last 30 days">30d credits</th><th title="Lowest to highest BP price, last 30 days">30d BP</th><th></th></tr></thead><tbody>${body}</tbody></table>`
-        :`<div class="sempty">Pick a filter and press <b>Find sires</b>. The list comes straight from the public Find Sires page, so no login is needed.</div>`)}
-
-  function histHtml(){
-    if(!st.hist)return'';const h=st.hist,rows=h.rows;
-    const line=(key,col)=>{const v=rows.filter(r=>r[key]!=null);if(v.length<2)return'';const all=rows.map(r=>r[key]).filter(x=>x!=null),lo=Math.min(...all),hi=Math.max(...all),sp=hi-lo||1;
-      return `<polyline fill="none" stroke="${col}" stroke-width="2" points="${v.map((r,i)=>`${(i/(v.length-1)*280+10).toFixed(1)},${(60-((r[key]-lo)/sp)*50).toFixed(1)}`).join(' ')}"/>`};
-    const tbl=rows.slice(-12).reverse().map(r=>`<tr><td>${esc(r.day)}</td><td class="n">${n(r.cost)}</td><td class="n">${n(r.bp)}</td></tr>`).join('');
-    return `<div class="shist"><div><b>${esc(h.name)}</b> &middot; saved daily prices (last 90 days) <button type="button" class="lk" data-a="hclose">close</button></div>`
-      +(rows.length?`<div class="hrow"><svg width="300" height="70"><rect width="300" height="70" fill="none" stroke="#bbb"/>${line('cost','#0f8b8d')}${line('bp','#c2410c')}</svg>`
-        +`<table class="stab"><thead><tr><th>Day</th><th class="n">Credits</th><th class="n">BP</th></tr></thead><tbody>${tbl}</tbody></table></div><div class="sm"><span style="color:#0f8b8d">&#9632;</span> credits &nbsp; <span style="color:#c2410c">&#9632;</span> BP. A new price is saved each day SDM reads this sire.</div>`
-        :'<div class="sm">No saved prices yet. Prices are saved each day this sire shows up in a search or a watchlist check.</div>')+`</div>`}
-
-  function watchHtml(){
-    const perm=('Notification' in window)?Notification.permission:'denied';
-    const auto=[[0,'Off'],[15,'every 15 minutes'],[30,'every 30 minutes'],[60,'every hour'],[120,'every 2 hours']].map(([k,l])=>`<option value="${k}"${st.auto===k?' selected':''}>${l}</option>`).join('');
-    const rows=st.watch.slice().sort((x,y)=>((y.last_bp==null?-1:y.last_bp)-(x.last_bp==null?-1:x.last_bp))||String(x.name).localeCompare(y.name)).map(w=>{const h=w.hit||[];
-      return `<tr class="${h.length?'hit':''}${!w.y2&&w.y3?' only3':''}"><td class="nm">${sireLink(w.sire_id,w.name)}</td><td class="n${h.includes('cost')?' b':''}">${n(w.last_cost)}</td><td class="n${h.includes('bp')?' b':''}">${n(w.last_bp)}</td>`
-        +`<td><input class="wc" data-id="${esc(w.sire_id)}" value="${w.max_cost??''}" size="5" inputmode="numeric" placeholder="none"></td><td><input class="wb" data-id="${esc(w.sire_id)}" value="${w.max_bp??''}" size="5" inputmode="numeric" placeholder="none"></td>`
-        +`<td>${h.length?'<span class="badge">BELOW LIMIT</span>':(w.last_checked?'above limit':'not checked yet')}</td>`
-        +`<td class="n sm">${w.days>1?n(w.cost_lo)+'-'+n(w.cost_hi)+' cr<br>'+n(w.bp_lo)+'-'+n(w.bp_hi)+' BP':''}</td><td class="sm">${esc(w.last_checked||'')}</td>`
-        +`<td><button type="button" data-s="${esc(w.sire_id)}">Save limits</button> <button type="button" class="lk" data-h="${esc(w.sire_id)}" data-n="${esc(w.name)}">history</button> <button type="button" class="lk" data-x="${esc(w.sire_id)}">remove</button></td></tr>`}).join('');
-    return `<div class="sctl"><button type="button" class="primary" data-a="check"${st.checking?' disabled':''}>${st.checking?'Checking…':'Check prices now'}</button>`
-      +`<label>Auto-check while SDM is open <select id="sf_auto">${auto}</select></label>`
-      +(perm==='granted'?'<span class="sm">Windows alerts are on.</span>':perm==='denied'?'<span class="sm">Windows alerts are blocked for this window; the banner still shows.</span>':'<button type="button" data-a="notify">Turn on Windows alerts</button>')
-      +`<span class="sm">${esc(st.msg)}</span></div>`
-      +`<div class="sm" style="margin:4px 2px 8px">An alert fires when a price is <b>at or under</b> your limit. Leave a limit empty to ignore that price. Prices are checked on the public site and each check is saved to your daily history.</div>`
-      +(st.watch.length?`<table class="stab"><thead><tr><th>Sire</th><th class="n">Credits now</th><th class="n">BP now</th><th>Credit limit</th><th>BP limit</th><th>Status</th><th>30 day range</th><th>Checked</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
-        :'<div class="sempty">Nothing watched yet. On the Find Sires tab, press the star next to a sire to add it.</div>')}
-
-  function paint(){
-    if(!isOpen())return;const d=dlg(),hits=st.watch.filter(w=>(w.hit||[]).length).length;
-    const y=(d.querySelector('.sbody')||{}).scrollTop||0;
-    d.innerHTML=`<div class="sbar"><b>Sire Finder &amp; Price Watch</b><span class="stabs"><button type="button" data-t="find" class="${st.tab==='find'?'on':''}">Find Sires</button><button type="button" data-t="watch" class="${st.tab==='watch'?'on':''}">Watchlist (${st.watch.length})${hits?` <i class="sh">${hits} below limit</i>`:''}</button></span><button type="button" data-a="close">Close</button></div><div class="sbody">${histHtml()}${st.tab==='find'?findHtml():watchHtml()}</div>`;
-    const b=d.querySelector('.sbody');if(b)b.scrollTop=y}
-
-  function readCtl(){const g=i=>{const e=$('#'+i);return e?e.value:null};
-    if(g('sf_sort')!=null)st.sort=g('sf_sort');if(g('sf_name')!=null)st.name=g('sf_name').trim();if(g('sf_loc')!=null)st.loc=g('sf_loc');
-    if(g('sf_pages')!=null)st.pages=g('sf_pages');if(g('sf_maxc')!=null)st.maxc=g('sf_maxc').trim();if(g('sf_maxb')!=null)st.maxb=g('sf_maxb').trim()}
-
-  async function search(){readCtl();st.busy=true;st.msg='Reading the sire list…';st.sk=(st.sort==='sire_cost'?'bp':st.sort==='creditcost'?'cost':null);st.sd=true;paint();
-    try{const r=await post('/api/sires/search',{filter:st.filt,sort:st.sort,name:st.name,loc:st.loc,pages:Number(st.pages)});
-      st.rows=r.rows;st.more=r.more;st.msg=r.rows.length+' sires read'+(r.more?' (more are available: raise the Read amount)':'')+'. Prices saved for today.'}
-    catch(e){st.msg=e.message}
-    st.busy=false;paint()}
-
-  async function loadWatch(){try{const r=await api('/api/sires/watch');st.watch=r.watch}catch(e){}}
-
-  function banner(items){let b=$('#sirebanner');if(!b){b=document.createElement('div');b.id='sirebanner';document.body.appendChild(b);b.onclick=e=>{if(e.target.dataset.close){b.hidden=true;return}b.hidden=true;open('watch')}}
-    b.hidden=false;b.innerHTML='<button type="button" data-close="1" title="Dismiss">&times;</button><b>Sire price alert</b>'+items.map(i=>'<div>'+esc(i)+'</div>').join('')}
-
-  function alertNew(news){const w=wmap(),items=news.map(x=>{const m=w[x.sire_id]||{};const p=[];
-      if(x.hit.includes('cost'))p.push('credits '+n(x.cost)+' (limit '+n(m.max_cost)+')');if(x.hit.includes('bp'))p.push('BP '+n(x.bp)+' (limit '+n(m.max_bp)+')');
-      return x.name+': '+p.join(', ')});
-    banner(items);
-    try{if('Notification' in window&&Notification.permission==='granted')new Notification('Sire price alert',{body:items.join('\n')})}catch(e){}}
-
-  async function check(){if(st.checking||!st.watch.length)return;st.checking=true;st.msg='Checking prices…';paint();
-    try{const r=await post('/api/sires/check');st.watch=r.watch;st.lastAt=Date.now();
-      const bad=r.results.filter(x=>x.error).length,hits=r.results.filter(x=>x.hit.length).length;
-      st.msg='Checked '+r.results.length+' sire'+(r.results.length===1?'':'s')+' at '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'. '+hits+' at or under limit'+(bad?', '+bad+' could not be read':'')+'.';
-      const news=r.results.filter(x=>x.new);if(news.length)alertNew(news)}
-    catch(e){st.msg=e.message}
-    st.checking=false;paint()}
-
-  async function addWatch(id){const r=st.rows.find(x=>x.sire_id===id);if(!r)return;
-    const mc=r.cost!=null?Math.max(10,Math.floor(r.cost*0.9)):'',mb=r.bp!=null?Math.max(25,Math.floor(r.bp*0.9)):'';
-    try{const o=await post('/api/sires/watch',{sire_id:id,name:r.name,max_cost:mc,max_bp:mb});st.watch=o.watch;
-      st.msg=r.name+' added with limits of '+lim(mc||null,mb||null)+'. Change them on the Watchlist tab.'}catch(e){st.msg=e.message}paint()}
-
-  async function saveLimits(id){const c=$(`.wc[data-id="${CSS.escape(id)}"]`),b=$(`.wb[data-id="${CSS.escape(id)}"]`),w=wmap()[id];if(!w)return;
-    try{const o=await post('/api/sires/watch',{sire_id:id,name:w.name,max_cost:c.value.trim(),max_bp:b.value.trim()});st.watch=o.watch;st.msg='Limits saved for '+w.name+'.'}catch(e){st.msg=e.message}paint()}
-
-  async function removeWatch(id){try{const o=await post('/api/sires/watch/delete',{sire_id:id});st.watch=o.watch}catch(e){st.msg=e.message}paint()}
-
-  async function showHist(id,name){try{const r=await api('/api/sires/history?id='+encodeURIComponent(id));st.hist={name,rows:r.rows}}catch(e){st.hist={name,rows:[]}}paint()}
-
-  function open(tab){if(tab)st.tab=tab;const d=dlg();if(!d.open)d.showModal();paint();loadWatch().then(paint)}
-
-  function wire(){const d=dlg();
-    d.addEventListener('click',e=>{const b=e.target.closest('button,th[data-k]');if(!b)return;
-      if(b.dataset.t){readCtl();st.tab=b.dataset.t;st.hist=null;paint();return}
-      if(b.dataset.f){readCtl();st.filt=b.dataset.f;paint();return}
-      if(b.dataset.k){readCtl();const k=b.dataset.k;if(st.sk===k)st.sd=!st.sd;else{st.sk=k;st.sd=(k!=='name')}paint();return}
-      if(b.dataset.w){addWatch(b.dataset.w);return}
-      if(b.dataset.s){saveLimits(b.dataset.s);return}
-      if(b.dataset.x){removeWatch(b.dataset.x);return}
-      if(b.dataset.h){showHist(b.dataset.h,b.dataset.n);return}
-      const a=b.dataset.a;
-      if(a==='close')d.close();else if(a==='search')search();else if(a==='check')check();else if(a==='hclose'){st.hist=null;paint()}
-      else if(a==='notify'){try{Notification.requestPermission().then(()=>paint())}catch(e){}}});
-    d.addEventListener('change',e=>{if(e.target.id==='sf_auto'){st.auto=Number(e.target.value);ls('sf_auto',String(st.auto));st.msg=st.auto?'Auto-check set.':'Auto-check off.';paint()}
-      else if(e.target.id==='sf_maxc'||e.target.id==='sf_maxb'){readCtl();paint()}});
-    d.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='sf_name'){e.preventDefault();search()}});
-    setInterval(()=>{if(st.auto&&st.watch.length&&!st.checking&&Date.now()-st.lastAt>=st.auto*60000)check()},60000)}
-
-  async function boot(){wire();st.lastAt=Date.now();await loadWatch();if(st.watch.length){await new Promise(r=>setTimeout(r,3000));check()}}
-  return {open,boot};
-})();
-
-$('#sirefind').onclick=()=>SF.open('find');SF.boot();
 
 // ---- new weekly pack pop-up: asks the server (which reads the archive page only once a new pack is due), then offers the download
 {const KEY='sdm_packskip';

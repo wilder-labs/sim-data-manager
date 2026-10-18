@@ -1,5 +1,6 @@
-"""Tiny local web server that powers the Sim Data Manager window. It reads public list pages (race schedule, Find Sires table) and, once per stable group, the public
-master stable page. It does not look up single horses or sires and it cannot make claims."""
+"""Tiny local web server that powers the Sim Data Manager window. Everything it shows comes from the local database.
+It never contacts ehorseracing.com. The only network calls are the data downloads the user starts (weekly packs, the shared
+database) and the update check on GitHub."""
 import json, os, sys, time, threading, datetime, subprocess, socket, webbrowser, shutil
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, quote
@@ -8,8 +9,6 @@ from . import search as S
 from . import archive as A
 from . import shared as SD
 from . import sire as SIRE
-from . import claims as CL
-from . import sirefinder as SF
 from . import share as SH
 from . import updater as UP
 
@@ -93,49 +92,6 @@ def make_handler(app):
                             A.configure(app.store)
                         w = A.list_packs(); app.packs_cache = (time.time(), w)
                     return self._send(dict(weeks=w, first_2020=A.FIRST_2020_PACK))
-                if u.path == '/api/stable-masters':
-                    # master stable for each trainer in one race: saved groups first, then one public request per unknown group
-                    names, out, offline = [], {}, False
-                    for n in (q.get('names') or '').split(',')[:20]:
-                        n = n.strip()
-                        if n and not n.startswith('*') and n.lower() not in [x.lower() for x in names]:
-                            names.append(n)
-                    for n in names:
-                        with app.lock:
-                            grp = SIRE.cached_group(app.store, n)
-                        if not grp and not offline:
-                            try:                        # network call made outside the lock; one group saves every member's name
-                                grp = SIRE.fetch_stables(n)
-                                with app.lock:
-                                    SIRE.save_group(app.store, n, grp)
-                                time.sleep(0.5)
-                            except Exception:
-                                offline = True          # stop at the first failure
-                        out[n] = (grp or {}).get('master')
-                    return self._send({'masters': out, 'offline': offline})
-                if u.path in ('/api/my-stables', '/api/stable-group'):
-                    nm = (q.get('name') or '').strip()
-                    if nm.startswith('*') or not nm:
-                        return self._send({'master': None, 'names': []})
-                    with app.lock:
-                        grp = SIRE.cached_group(app.store, nm)
-                    if grp:
-                        return self._send(grp)
-                    try:                                # network call made outside the lock
-                        grp = SIRE.fetch_stables(nm)
-                        with app.lock:
-                            SIRE.save_group(app.store, nm, grp)
-                        return self._send(grp)
-                    except ValueError as e:
-                        return self._send({'error': str(e)}, 400)
-                    except Exception:
-                        return self._send({'master': None, 'names': [], 'offline': True})
-                if u.path == '/api/sires/watch':
-                    with app.lock:
-                        return self._send({'watch': SF.watch_list(app.store)})
-                if u.path == '/api/sires/history':
-                    with app.lock:
-                        return self._send({'rows': SF.history(app.store, q.get('id') or '')})
                 if u.path == '/api/sire':              # cache only: a sire already saved in the database; nothing is looked up on the site
                     hid = int(q.get('hid') or 0)
                     with app.lock:
@@ -179,59 +135,6 @@ def make_handler(app):
                     with app.lock:
                         app.store.set_setting('auto_enabled', '1' if a.get('auto_enabled') else '0')
                     return self._send({'ok': True})
-                if u.path == '/api/claim-finder':
-                    a = json.loads(body or b'{}')
-                    today = datetime.date.today()
-                    d1 = a.get('from') or (today + datetime.timedelta(days=1)).isoformat()
-                    d2 = a.get('to') or (today + datetime.timedelta(days=2)).isoformat()
-                    with app.lock:
-                        known = list(app.store.tracks())
-                    try:                        # network calls are made outside the lock
-                        races = CL.collect(d1, d2, tracks=known)
-                    except Exception as e:
-                        return self._send({'error': 'Could not read the race schedule from eHorseRacing (%s: %s).' % (type(e).__name__, e)}, 502)
-                    with app.lock:
-                        rows, tracks = CL.build(app.store, races)
-                    return self._send(dict(kind='claims', candidates=[], rows=rows, summary=None, truncated=False,
-                                           claims=dict(first_date=d1, last_date=d2, races=len(races), horses=len(rows),
-                                                       debuts=sum(1 for r in rows if r['debut']), tracks=tracks)))
-                if u.path == '/api/sires/search':
-                    a = json.loads(body or b'{}')
-                    filt = a.get('filter') if a.get('filter') in SF.FILTERS else 'a'
-                    sort = a.get('sort') if a.get('sort') in SF.SORTS else 'creditcost'
-                    try:                        # network calls are made outside the lock
-                        rows, more = SF.collect(filt, sort, (a.get('name') or '').strip(), a.get('loc') or 'all', int(a.get('pages') or 1))
-                    except Exception as e:
-                        return self._send({'error': 'Could not read the sire list from eHorseRacing (%s: %s).' % (type(e).__name__, e)}, 502)
-                    with app.lock:
-                        SF.snapshot(app.store, rows)
-                        rg = SF.ranges(app.store, [r['sire_id'] for r in rows])
-                    for r in rows:
-                        r['range'] = rg.get(r['sire_id'])
-                    return self._send({'rows': rows, 'more': more})
-                if u.path == '/api/sires/check':        # one read of the Find Sires table (a few pages in a row), then the watch list is matched against it
-                    with app.lock:
-                        w = SF.watch_list(app.store)
-                    try:                                # network calls are made outside the lock
-                        rows, more = SF.read_table()
-                    except Exception as e:
-                        return self._send({'error': 'Could not read the sire list from eHorseRacing (%s: %s).' % (type(e).__name__, e)}, 502)
-                    found = SF.found_from(rows, w, more)
-                    with app.lock:
-                        SF.snapshot(app.store, rows)
-                        res = SF.apply_check(app.store, w, found)
-                        wl = SF.watch_list(app.store)
-                    return self._send({'results': res, 'watch': wl})
-                if u.path == '/api/sires/watch':
-                    a = json.loads(body or b'{}')
-                    with app.lock:
-                        SF.watch_set(app.store, str(a.get('sire_id') or ''), a.get('name') or '', a.get('max_cost'), a.get('max_bp'))
-                        return self._send({'watch': SF.watch_list(app.store)})
-                if u.path == '/api/sires/watch/delete':
-                    a = json.loads(body or b'{}')
-                    with app.lock:
-                        SF.watch_delete(app.store, str(a.get('sire_id') or ''))
-                        return self._send({'watch': SF.watch_list(app.store)})
                 if u.path.startswith('/api/share/'):
                     if self.headers.get('X-SDM') != '1':        # a web page on another site cannot add this header
                         return self._send({'error': 'Request refused.'}, 403)
