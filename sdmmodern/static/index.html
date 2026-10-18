@@ -668,6 +668,9 @@ html[data-theme="glass"] #side h4{color:var(--accent)}
 html[data-theme="glass"] a.viewerlink{border-radius:999px;background:linear-gradient(180deg,rgba(var(--glr),.25),rgba(var(--glr),.10));box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 8px 18px -6px rgba(var(--glr),.5)}
 html[data-theme="glass"] .cand{background:rgba(255,255,255,.06)}
 html[data-theme] #side>*{margin-left:22px!important;margin-right:22px!important}
+html[data-theme] #side>table{width:calc(100% - 44px)!important;box-sizing:border-box}
+html[data-theme] #side .mini td.rk{width:1%;white-space:nowrap;text-align:right;padding-right:2px;color:var(--mute);font-variant-numeric:tabular-nums}
+html[data-theme="glass"] thead th{background:rgba(10,16,32,.97)}
 /* floating panels and dialogs sit over the list, so they are solid, not see-through */
 html[data-theme="glass"] dialog,html[data-theme="glass"] .drop,html[data-theme="glass"] #themepop,html[data-theme="glass"] .colpop{background:linear-gradient(180deg,#16203a,#0e1527)!important;-webkit-backdrop-filter:none;backdrop-filter:none;border:1px solid rgba(170,200,255,.22);box-shadow:0 30px 70px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.1) inset}
 html[data-theme] tbody tr.trline td{border-top:3px solid #ff86b8}
@@ -1392,6 +1395,7 @@ refreshInfo();setInterval(()=>fetch('/api/ping').catch(()=>{}),4000);fetch('/api
 addEventListener('pagehide',()=>{try{navigator.sendBeacon('/api/bye')}catch(e){}});
 
 // ---- resizable side panel
+(function(){const side=$('#side');const mark=()=>{side.querySelectorAll('table.mini tr').forEach(tr=>{const td=tr.firstElementChild;if(td&&td.tagName==='TD'&&/^\d{1,3}$/.test(td.textContent.trim()))td.classList.add('rk')})};new MutationObserver(mark).observe(side,{childList:true,subtree:true});mark()})();
 (function(){
   const side=$('#side'),grip=$('#sidegrip'),KEY='sdm_sidew';
   const clamp=w=>Math.max(220,Math.min(w,Math.floor(window.innerWidth*0.75)));
