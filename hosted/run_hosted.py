@@ -8,10 +8,11 @@ Settings (environment variables):
   DATA_DIR   a folder that survives restarts, for example a Railway volume mounted at /data (default ./data)
   DB_URL     address of the one-year database zip (default: SDM-2026.zip on this project's 'data' release)
   DEMO_LABEL text shown in the banner (default: Demo: 2026 races only)
+  QUERY_SECONDS longest a single search may run before it is stopped (default 8)
   AUTO_UPDATE set to 1 to check the release every 6 hours; when the database file there changes, download it
              beside the old one, then restart so the new one is used (the host starts the app again)
 """
-import os, sys, time, json, shutil, zipfile, threading, collections, importlib
+import os, sys, io, time, json, shutil, zipfile, threading, collections, importlib
 from http.server import ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +25,10 @@ POST_OK = {'/api/search', '/api/owner-changes', '/api/best-speeds', '/api/curren
            '/api/graded-races', '/api/stakes-year', '/api/owner-rankings'}
 MAX_BODY = 20000                      # a search request is a few hundred bytes
 RATE_PER_MIN = 120                    # per visitor address
-QUERY_SECONDS = 8                     # a query running longer than this is stopped
+QUERY_SECONDS = int(os.environ.get('QUERY_SECONDS', '8'))   # a query running longer than this is stopped
+CACHE_PATHS = {'/api/owner-rankings', '/api/first-time-starters', '/api/stakes-year', '/api/best-speeds', '/api/graded-races'}
+CACHE_MAX_BYTES = 64 * 1048576        # all kept answers together; the oldest are dropped first
+WARM_PATHS = ['/api/owner-rankings', '/api/first-time-starters', '/api/stakes-year']
 HIDE_JS = r"""<style>#datachip{pointer-events:none}.hosted-bar{background:#243b53;color:#fff;padding:6px 14px;font:13px system-ui,sans-serif;text-align:center}</style>
 <script>(function(){try{if(Math.min(screen.width,screen.height)<700&&location.search.indexOf('desktop')<0){location.replace('/m');return}}catch(e){}try{Object.keys(DEFHID).forEach(function(k){DEFHID[k]=DEFHID[k].filter(function(x){return x==='hid'})})}catch(e){}var hide=['denovo','import','shared','share','remove','compact','update','exit','simreset','archive','tracks'];var ids=['mystfs','claims','sirefind'];
 function go(){var d=document;ids.forEach(function(i){var e=d.getElementById(i);if(e)e.style.display='none'});var em=d.getElementById('empty');if(em&&em.textContent.indexOf('First time')>-1)em.textContent='Search for a horse, a trainer or a race. This demo holds 2026 races only.';hide.forEach(function(a){d.querySelectorAll('[data-act="'+a+'"]').forEach(function(e){e.style.display='none'})});
@@ -155,6 +159,38 @@ class TimedLock:
         self._l.release()
 
 
+class AnswerCache:
+    """Keeps the answers to the heavy list pages in memory. The data only changes when a new database is installed,
+    and that restarts the app, so the cache is empty again after every update. Only whitelisted pages with small
+    request bodies are kept, and the total size is capped."""
+    def __init__(self):
+        self.d, self.size, self.lock, self.keylocks = collections.OrderedDict(), 0, threading.Lock(), {}
+
+    def get(self, key):
+        with self.lock:
+            v = self.d.get(key)
+            if v is not None:
+                self.d.move_to_end(key)
+            return v
+
+    def put(self, key, b):
+        with self.lock:
+            if len(b) > CACHE_MAX_BYTES // 2:
+                return
+            if key in self.d:
+                self.size -= len(self.d.pop(key))
+            self.d[key] = b
+            self.size += len(b)
+            while self.size > CACHE_MAX_BYTES and self.d:
+                self.size -= len(self.d.popitem(last=False)[1])
+
+    def keylock(self, key):
+        with self.lock:
+            if len(self.keylocks) > 200:
+                self.keylocks.clear()
+            return self.keylocks.setdefault(key, threading.Lock())
+
+
 class Limiter:
     def __init__(self):
         self.hits, self.lock = collections.defaultdict(collections.deque), threading.Lock()
@@ -174,7 +210,7 @@ class Limiter:
             return True
 
 
-def build_handler(app, label, limiter):
+def build_handler(app, label, limiter, cache):
     from sdmmodern.server import make_handler
     H = make_handler(app)
     page_extra = HIDE_JS.replace('%LABEL%', json.dumps(label))
@@ -241,12 +277,45 @@ def build_handler(app, label, limiter):
                 n = -1
             if n < 0 or n > MAX_BODY:
                 return self._deny(413, 'request too large')
-            return super().do_POST()
+            if path not in CACHE_PATHS or n > 400:
+                return super().do_POST()
+            body = self.rfile.read(n) if n else b''
+            key = (path, body)
+            hit = cache.get(key)
+            if hit is None:
+                with cache.keylock(key):                 # two visitors asking at once: one works, the other waits for the answer
+                    hit = cache.get(key)
+                    if hit is None:
+                        self.rfile = io.BytesIO(body)
+                        self._capkey = key
+                        return super().do_POST()
+            return super()._send(hit)
+
+        def _send(self, obj, code=200, ctype='application/json'):
+            b = obj if isinstance(obj, bytes) else json.dumps(obj).encode()
+            k = getattr(self, '_capkey', None)
+            if k and code == 200:
+                cache.put(k, b)
+            return super()._send(b, code, ctype)
 
         def do_PUT(self):
             self._deny(405, 'not allowed')
         do_DELETE = do_PATCH = do_PUT
     return G
+
+
+def warm_up(port):
+    """Asks for the slow list pages once after start, so the first visitor does not wait for them."""
+    import urllib.request
+    time.sleep(5)
+    for path in WARM_PATHS:
+        t0 = time.time()
+        try:
+            req = urllib.request.Request('http://127.0.0.1:%d%s' % (port, path), data=b'{}', headers={'Content-Type': 'application/json'})
+            urllib.request.urlopen(req, timeout=120).read()
+            log('warmed', path, '%.1fs' % (time.time() - t0))
+        except Exception as e:
+            log('warm-up skipped', path, type(e).__name__)
 
 
 def main():
@@ -265,8 +334,9 @@ def main():
     label = os.environ.get('DEMO_LABEL', 'Demo: 2026 races only. Read-only.')
     if os.environ.get('AUTO_UPDATE') == '1':
         threading.Thread(target=updater_loop, args=(os.environ.get('DB_URL', DEFAULT_URL), data_dir), daemon=True).start()
-    srv = ThreadingHTTPServer(('0.0.0.0', port), build_handler(app, label, Limiter()))
+    srv = ThreadingHTTPServer(('0.0.0.0', port), build_handler(app, label, Limiter(), AnswerCache()))
     srv.daemon_threads = True
+    threading.Thread(target=warm_up, args=(port,), daemon=True).start()
     log('listening on port', port)
     srv.serve_forever()
 
