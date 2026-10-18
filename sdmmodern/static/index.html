@@ -237,7 +237,7 @@ tbody tr.yrline td{border-top:5px double #d9a62e}
 .rz:hover::after,.rz.drag::after{opacity:1}
 #grid td{border-right:1px solid rgba(128,150,190,.13)}
 #grid td:last-child{border-right:0}
-#sidegrip{background:linear-gradient(90deg,transparent 2px,rgba(128,150,190,.45) 2px,rgba(128,150,190,.45) 4px,transparent 4px)}
+
 </style>
 <style id="skin">
 /* ======== Modern look (overrides the classic styles above) ======== */
@@ -313,7 +313,7 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent);width:15px;hei
 .legend{gap:12px}.legend i{width:9px;height:9px;border-radius:50%;border:0;background:var(--dirt)}
 #legsex i:nth-of-type(1){background:var(--fem)}
 #scroll{padding:0 6px 10px}
-#sidegrip{display:none}
+#sidegrip{display:block;width:14px;margin:0 -9px;cursor:col-resize;flex:none;z-index:5;position:relative;background:transparent}#sidegrip::after{content:"";position:absolute;left:5px;top:50%;width:4px;height:48px;margin-top:-24px;border-radius:3px;background:var(--mute);opacity:.35;transition:opacity .15s}#sidegrip:hover::after,#sidegrip.drag::after{opacity:.9;background:var(--accent)}@media(min-width:1700px){#side{width:clamp(350px,23vw,620px)}}
 #side{background:var(--panel);border:0;border-radius:var(--r);box-shadow:var(--shadow);padding:20px 22px;width:350px}
 #side h3{font-size:19px;font-weight:700;margin:0 0 6px;letter-spacing:-.01em}
 #side h4{margin:22px 0 8px;font-size:10.5px;letter-spacing:.1em;font-weight:600}
@@ -1065,7 +1065,7 @@ const VIEWNAMES=new Map([[BASECOLS,'races'],[STKCOLS,'stakes'],[OWNCOLS,'trainer
 let LAYOUT={};try{LAYOUT=JSON.parse(localStorage.getItem('sdm_layout')||'{}')}catch(e){}
 function saveLayout(){try{localStorage.setItem('sdm_layout',JSON.stringify(LAYOUT))}catch(e){}}
 const viewName=()=>VIEWNAMES.get(COLS)||'other';
-const DEFHID={races:['ppos','size','cond','age','bps','odds','racenum'],debuts:['ppos','size','cond','age','bps','odds','racenum'],speeds:['ppos','size','cond','age','bps','odds','racenum'],changes:['ppos','size','cond','age','bps','odds','racenum'],claims:['pgm','entered_by','race_no','size','cond','restr','odds','earn']};
+const DEFHID={races:['ppos','size','cond','age','bps','odds','racenum','hid'],debuts:['ppos','size','cond','age','bps','odds','racenum','hid'],speeds:['ppos','size','cond','age','bps','odds','racenum','hid'],changes:['ppos','size','cond','age','bps','odds','racenum','hid'],claims:['pgm','entered_by','race_no','size','cond','restr','odds','earn']};
 function vcols(){const L=LAYOUT[viewName()];if(!L){const d=DEFHID[viewName()];if(d){const v=COLS.filter(c=>!d.includes(c[0]));return v.length?v:COLS}return COLS}
   const by=new Map(COLS.map(c=>[c[0],c]));const out=[];
   (L.order||[]).forEach(k=>{if(by.has(k)){out.push(by.get(k));by.delete(k)}});
@@ -1128,7 +1128,7 @@ function render(){
   const yrBreak=i=>byDate&&i>0&&view[i].date&&view[i-1].date&&view[i].date.slice(0,4)!==view[i-1].date.slice(0,4);
   const stBreak=i=>(COLS===CURCOLS||COLS===STBLCOLS)&&!sortKey&&i>0&&(COLS===CURCOLS?view[i].oname!==view[i-1].oname:(last&&last.stblAll!==false&&view[i].stable!==view[i-1].stable));   // bold line between stables in the default order
   const rowHtml=(r,i)=>`<tr data-i="${i}" class="${yrBreak(i)||stBreak(i)?'yrbreak ':''}${yrBreak(i)?'yrline ':trBreak(i)?'trline ':''}${COLS===CURCOLS?(r.sex==='F'?'sexF':'sexM'):(r.surf||'')} ${COLS===STBLCOLS&&/^Farm/.test(r.plan||'')?'farm':''} ${r.chg==='After'?'chgA':''} ${r.chg==='Before'?'chgB':''}">`+VC.map(([k,l,c])=>{
-    let v=r[k];if(k==='oname'&&v)return `<td data-k="oname"><a href="#" class="ownerlink" title="List this trainer's races">${esc(v)}</a></td>`;if((COLS===CURCOLS||COLS===CLMCOLS||COLS===STBLCOLS)&&(k==='hid'||k==='hname'))return `<td data-k="${k}" class="${c||''}"><a href="#" class="horselink" title="Show this horse's full record">${esc(v)}</a></td>`;if(COLS===OWNCOLS||COLS===CURCOLS){return `<td data-k="${k}" class="${c||''} ${SPDK.has(k)?'spd':''}">${esc(FMT[k]?FMT[k](v):v)}</td>`}
+    let v=r[k];if(k==='hname'&&v&&r.hid)return `<td data-k="hname" class="${c||''}"><a href="#" class="horselink" title="Show this horse's full record (ID ${esc(r.hid)})">${esc(v)}</a></td>`;if(k==='oname'&&v)return `<td data-k="oname"><a href="#" class="ownerlink" title="List this trainer's races">${esc(v)}</a></td>`;if((COLS===CURCOLS||COLS===CLMCOLS||COLS===STBLCOLS)&&(k==='hid'||k==='hname'))return `<td data-k="${k}" class="${c||''}"><a href="#" class="horselink" title="Show this horse's full record">${esc(v)}</a></td>`;if(COLS===OWNCOLS||COLS===CURCOLS){return `<td data-k="${k}" class="${c||''} ${SPDK.has(k)?'spd':''}">${esc(FMT[k]?FMT[k](v):v)}</td>`}
     if(k==='sp'||k==='odds')v=fmt(v);else if(k==='cond')v=condName(r.surf,v);else if(k==='dist')v=fmt(v,1);else if(k==='purse'||k==='cprice'||k==='earn'||k==='claim'||k==='money')v=money(v);else if(k==='run_dist')v=fmt(v,1);else if(k==='racenum')v=v==null?'':Number(v).toFixed(4);else if(k==='restr'&&COLS!==STKCOLS&&v){const amt=r.cprice>100?r.cprice:r.purse;if(amt>0)v=v+' '+short$(amt)}else if(k==='restr'&&COLS===STKCOLS&&v==='GI')v='G1';
     if(k==='hid')return `<td data-k="${k}" class="${c||''}"><a href="#" class="horselink" title="Show this horse's full record">${esc(v)}</a></td>`;
     if(k==='racenum'&&v==='')return '<td></td>';
