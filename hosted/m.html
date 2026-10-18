@@ -51,6 +51,10 @@ button.row{cursor:pointer}
 .ringw svg{transform:rotate(-90deg)}
 .ringw .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 24px/1 var(--disp)}
 .ringw .c small{font:500 10px var(--body);color:var(--muted);margin-top:2px}
+.sx{display:inline-block;padding:1px 9px;border-radius:99px;font:600 12px/1.5 var(--body);border:1px solid var(--line);white-space:nowrap}
+.sx.sf{color:#F9A8D4;background:#F472B622;border-color:#F472B677}.sx.sm{color:#93C5FD;background:#60A5FA22;border-color:#60A5FA77}
+.row .meta .sx{display:table;margin:4px 0 3px}
+.row.sf{border-left:5px solid #F472B6}.row.sm{border-left:5px solid #60A5FA}
 .back{min-height:44px;background:none;border:0;color:var(--accent);font-weight:600;font-size:15px;padding:0;margin-top:4px}
 .form.tap{cursor:pointer}.form.tap:active{background:var(--s2)}
 .form{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px 14px;margin:8px 0}
@@ -122,6 +126,13 @@ function ord(n){n=Number(n);if(!n)return '';var s=['th','st','nd','rd'],v=n%100;
 function dist(d){d=Number(d);if(!d)return '';if(d<8)return d+'f';var w=Math.floor(d/8),r=d-w*8,n=Math.round(r*2),dn=16;if(!n)return w+'m';while(n%2===0&&dn>1){n/=2;dn/=2}return w+' '+n+'/'+dn+'m'}
 function dt(s){if(!s)return '';var p=String(s).split('-');return p.length===3?(['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]]+' '+(+p[2])):s}
 function post(u,b){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j&&j.error||('Error '+r.status));return j})})}
+var curYear=new Date().getFullYear();
+fetch('/api/info').then(function(r){return r.json()}).then(function(j){if(j&&j.last_date)curYear=+String(j.last_date).slice(0,4)}).catch(function(){});
+function ageAt(hid,yr){var h=String(hid||'');if(h.length<9)return null;var a=yr-1997-Number(h.slice(0,2));return a>0&&a<30?a:null}
+function sexCls(sx){return sx==='F'?'sf':(sx==='M'||sx==='G')?'sm':''}
+function sexWord(sx,a){if(sx==='F')return a!=null&&a>=5?'Mare':'Filly';if(sx==='M')return a!=null&&a>=5?'Horse':'Colt';if(sx==='G')return 'Gelding';return sx||''}
+function sexPill(o,yr,full){var a=ageAt(o.hid,yr),w=full?sexWord(o.sex,a):(o.sex||''),t=(a!=null?a+'yo ':'')+w;t=t.trim();return t?'<span class="sx '+sexCls(o.sex)+'">'+esc(t)+'</span>':''}
+function hrow(o){return '<button class="row '+sexCls(o.sex)+'" data-hid="'+esc(o.hid)+'"'}
 function sk(n){var o='';for(var i=0;i<(n||4);i++)o+='<div class="sk"></div>';return o}
 function ring(p){var r=40,c=2*Math.PI*r,v=Math.max(0,Math.min(100,p||0));return '<div class="ringw" role="img" aria-label="Win percentage '+Math.round(v)+' percent"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#26352D" stroke-width="9"/><circle cx="48" cy="48" r="'+r+'" fill="none" stroke="#5BE08F" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+(c*v/100)+' '+c+'"/></svg><div class="c">'+Math.round(v)+'%<small>WIN</small></div></div>'}
 function tile(v,l,cls){return '<div class="tile"><div class="v '+(cls||'')+'">'+v+'</div><div class="l">'+l+'</div></div>'}
@@ -157,11 +168,11 @@ function runSearch(q,keep){
     if(r.candidates&&r.candidates.length){
       var h='<div class="sub" style="margin:6px 2px">'+r.candidates.length+' horses match</div>';res.innerHTML=h;
       var holder=document.createElement('div');res.appendChild(holder);
-      pager(r.candidates,function(c){return '<button class="row" data-hid="'+esc(c.hid)+'"><div class="main"><div class="nm">'+esc(c.hname)+'</div><div class="meta">'+esc(c.tag||'')+' '+esc(c.sex||'')+' · '+num(c.starts)+' starts · '+esc(c.owner||'')+'</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>'},25,holder);
+      pager(r.candidates,function(c){return hrow(c)+'><div class="main"><div class="nm">'+esc(c.hname)+'</div><div class="meta">'+sexPill(c,curYear,true)+' '+esc(c.tag||'')+' · '+num(c.starts)+' starts · '+esc(c.owner||'')+'</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>'},25,holder);
       holder.onclick=function(e){var b=e.target.closest('button.row');if(b)openHorse(b.dataset.hid)};
       return}
     if(!r.rows||!r.rows.length){res.innerHTML='<div class="empty">Nothing found for &ldquo;'+esc(q)+'&rdquo;.<br>Try a shorter name with * at the end.</div>';return}
-    if(keep){var x=r.rows[0];res.innerHTML=kindSel==='horse'?'<button class="row" data-hid="'+esc(x.hid)+'"><div class="main"><div class="nm">'+esc(x.hname)+'</div><div class="meta">'+esc(x.tag||'')+' '+esc(x.sex||'')+'</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>':'<button class="row" data-own="'+esc(x.oname)+'"><div class="main"><div class="nm">'+esc(x.oname)+'</div><div class="meta">trainer</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>';
+    if(keep){var x=r.rows[0];res.innerHTML=kindSel==='horse'?hrow(x)+'><div class="main"><div class="nm">'+esc(x.hname)+'</div><div class="meta">'+sexPill(x,curYear,true)+' '+esc(x.tag||'')+'</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>':'<button class="row" data-own="'+esc(x.oname)+'"><div class="main"><div class="nm">'+esc(x.oname)+'</div><div class="meta">trainer</div></div><span class="acc" aria-hidden="true">&rsaquo;</span></button>';
       res.onclick=function(e){var b=e.target.closest('button.row');if(!b)return;if(b.dataset.hid)openHorse(b.dataset.hid);else openTrainer(b.dataset.own)};return}
     var k=kindSel;nav(function(){k==='horse'?renderHorse(r):renderTrainer(r,q)});
   }).catch(function(e){res.innerHTML='<div class="empty err">'+esc(e.message)+'</div>'})
@@ -174,7 +185,7 @@ function backBtn(){return '<button class="back" id="bk">&lsaquo; Back</button>'}
 function bindBack(){var b=$('#bk');if(b)b.onclick=function(){history.back()}}
 function renderHorse(r){
   var rows=(r.rows||[]).slice().sort(function(a,b){return (b.racenum||0)-(a.racenum||0)}),s=r.summary||{},h0=rows[0]||{};
-  var o=backBtn()+'<h1>'+esc(h0.hname)+'</h1><div class="sub">'+[h0.tag,h0.sex==='M'?'Mare':h0.sex==='F'?'Filly':h0.sex==='G'?'Gelding':h0.sex==='H'?'Horse':h0.sex,'trained by '+esc(h0.oname||'')].filter(Boolean).join(' · ')+'</div>';
+  var o=backBtn()+'<h1>'+esc(h0.hname)+'</h1><div class="sub" style="margin-top:6px">'+[sexPill(h0,curYear,true),h0.tag?esc(h0.tag):'','trained by '+esc(h0.oname||'')].filter(Boolean).join(' &middot; ')+'</div>';
   o+='<div class="hero">'+ring(s.win_pct)+'<div style="flex:1;min-width:0"><div class="sub">Record (1st-2nd-3rd)</div><div class="big" style="text-align:left;font-size:34px"><span class="gold">'+(s.w||0)+'</span>-<span style="color:var(--place)">'+(s.p||0)+'</span>-<span style="color:var(--show)">'+(s.s||0)+'</span></div><div class="sub">'+num(s.starts)+' starts &middot; in the money '+Math.round(s.itm_pct||0)+'%</div></div></div>';
   o+='<div class="tiles">'+tile(money(s.earn),'Earned','gold')+tile(sp(s.max_speed)||'-','Best speed','acc')+tile(sp(s.avg_speed)||'-','Average speed')+tile(money(s.earn_per_start),'Per start')+'</div>';
   if(s.by_type&&s.by_type.length){o+='<h2>Speed by surface</h2><div class="card"><table><tr><th>Surface</th><th>Dist</th><th class="n">Runs</th><th class="n">Avg</th><th class="n">Best</th></tr>'+s.by_type.map(function(t){return '<tr><td>'+esc(t.surface)+'</td><td>'+esc(t.dist)+'</td><td class="n">'+num(t.n)+'</td><td class="n">'+num(t.avg,1)+'</td><td class="n"><b>'+num(t.max,1)+'</b></td></tr>'}).join('')+'</table></div>'}
@@ -186,7 +197,7 @@ function renderHorse(r){
 }
 function renderTrainer(r,q){
   var rows=(r.rows||[]).slice().sort(function(a,b){return (b.racenum||0)-(a.racenum||0)}),s=r.summary||{};
-  var hs={};rows.forEach(function(x){var h=hs[x.hid]||(hs[x.hid]={hid:x.hid,hname:x.hname,n:0,w:0,p:0,s:0,last:'',best:0,earn:0});h.n++;if(x.fin==1)h.w++;if(x.fin==2)h.p++;if(x.fin==3)h.s++;if(!h.last||x.date>h.last)h.last=x.date;if(x.sp>h.best)h.best=x.sp;h.earn+=x.earn||0});
+  var hs={};rows.forEach(function(x){var h=hs[x.hid]||(hs[x.hid]={hid:x.hid,sex:x.sex,hname:x.hname,n:0,w:0,p:0,s:0,last:'',best:0,earn:0});h.n++;if(x.fin==1)h.w++;if(x.fin==2)h.p++;if(x.fin==3)h.s++;if(!h.last||x.date>h.last)h.last=x.date;if(x.sp>h.best)h.best=x.sp;h.earn+=x.earn||0});
   var hl=Object.keys(hs).map(function(k){return hs[k]}).sort(function(a,b){return a.last<b.last?1:-1});
   var names=r.stable&&r.stable.length?r.stable:null;
   var o=backBtn()+'<h1>'+esc(rows[0]&&rows[0].oname?rows[0].oname:q)+'</h1><div class="sub">Trainer &middot; '+hl.length+' horses &middot; '+rows.length+' runs</div>';
@@ -196,7 +207,7 @@ function renderTrainer(r,q){
   if(r.truncated)o+='<div class="note">The list was cut off at the limit, so older runs may be missing.</div>';
   app.innerHTML=o;bindBack();
   var hold=$('#hl');
-  pager(hl,function(h){return '<button class="row" data-hid="'+esc(h.hid)+'"><div class="main"><div class="nm">'+esc(h.hname)+'</div><div class="meta">'+h.n+' runs &middot; '+h.w+'-'+h.p+'-'+h.s+' &middot; last '+dt(h.last)+'</div></div><div class="big">'+(sp(h.best)||'-')+'<small>best speed</small></div></button>'},12,hold);
+  pager(hl,function(h){return hrow(h)+'><div class="main"><div class="nm">'+esc(h.hname)+'</div><div class="meta">'+sexPill(h,curYear,true)+' '+h.n+' runs &middot; '+h.w+'-'+h.p+'-'+h.s+' &middot; last '+dt(h.last)+'</div></div><div class="big">'+(sp(h.best)||'-')+'<small>best speed</small></div></button>'},12,hold);
   hold.onclick=function(e){var b=e.target.closest('button.row');if(b)openHorse(b.dataset.hid)};
   window.scrollTo(0,0)
 }
@@ -222,7 +233,7 @@ function renderRace(r){
   if(by[1])o+='<div class="pod" id="pod" role="group" aria-label="Top three finishers">'+podSlot(by[2],2)+podSlot(by[1],1)+podSlot(by[3],3)+'</div>';
   o+='<h2>Result</h2><div id="rr">';
   rows.forEach(function(x){var f=Number(x.fin),fc=f===1?'f1':f===2?'f2':f===3?'f3':'',pv=prev[x.hid];
-    o+='<button class="row" data-hid="'+esc(x.hid)+'"><div class="fin '+fc+'" style="width:58px"><b>'+(f?ord(f):'-')+'</b><small>post '+esc(x.ppos||'?')+'</small></div><div class="main"><div class="nm">'+esc(x.hname)+'</div><div class="meta">'+[esc(x.oname),x.odds?num(x.odds,1)+'-1':'',x.earn?money(x.earn):''].filter(Boolean).join(' · ')+'</div>'+(pv&&pv.prev_sp?'<div class="meta">last start '+sp(pv.prev_sp)+(pv.prev_days?' &middot; '+pv.prev_days+' days ago':'')+'</div>':'')+'</div><div class="big">'+(sp(x.sp)||'-')+'<small>speed</small></div></button>'});
+    o+=hrow(x)+'><div class="fin '+fc+'" style="width:58px"><b>'+(f?ord(f):'-')+'</b><small>post '+esc(x.ppos||'?')+'</small></div><div class="main"><div class="nm">'+esc(x.hname)+'</div><div class="meta">'+sexPill(x,String(c.date||'').slice(0,4)*1||curYear)+' '+[esc(x.oname),x.odds?num(x.odds,1)+'-1':'',x.earn?money(x.earn):''].filter(Boolean).join(' · ')+'</div>'+(pv&&pv.prev_sp?'<div class="meta">last start '+sp(pv.prev_sp)+(pv.prev_days?' &middot; '+pv.prev_days+' days ago':'')+'</div>':'')+'</div><div class="big">'+(sp(x.sp)||'-')+'<small>speed</small></div></button>'});
   o+='</div>';app.innerHTML=o;bindBack();
   var pd=$('#pod');if(pd)pd.onclick=function(e){var b=e.target.closest('button[data-hid]');if(b)openHorse(b.dataset.hid)};
   $('#rr').onclick=function(e){var b=e.target.closest('button.row');if(b&&b.dataset.hid)openHorse(b.dataset.hid)};
@@ -237,7 +248,7 @@ function showLists(){
   app.querySelector('.chips').onclick=function(e){var b=e.target.closest('button');if(b){listSel=b.dataset.l;showLists()}};
   loadList()
 }
-function runRow(r,i,showTrainer){return '<button class="row" data-hid="'+esc(r.hid)+'"><div class="rank">'+(r.rank||i+1)+'</div><div class="main"><div class="nm">'+esc(r.hname)+'</div><div class="meta">'+[dt(r.date),esc(r.track),dist(r.dist),surf(r.surf),esc(r.oname)].filter(Boolean).join(' · ')+'</div></div><div class="big">'+(sp(r.sp)||'-')+'<small>'+(r.fin?ord(r.fin):'speed')+'</small></div></button>'}
+function runRow(r,i,showTrainer){return hrow(r)+'><div class="rank">'+(r.rank||i+1)+'</div><div class="main"><div class="nm">'+esc(r.hname)+'</div><div class="meta">'+sexPill(r,String(r.date||'').slice(0,4)*1||curYear)+' '+[dt(r.date),esc(r.track),dist(r.dist),surf(r.surf),esc(r.oname)].filter(Boolean).join(' · ')+'</div></div><div class="big">'+(sp(r.sp)||'-')+'<small>'+(r.fin?ord(r.fin):'speed')+'</small></div></button>'}
 function loadList(){
   var l=$('#lst'),opts=$('#opts');l.innerHTML=sk(6);
   if(listSel==='speeds'){
