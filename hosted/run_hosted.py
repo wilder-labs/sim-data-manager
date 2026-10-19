@@ -9,7 +9,7 @@ Settings (environment variables):
   DB_URL     address of the one-year database zip (default: SDM-2026.zip on this project's 'data' release)
   DEMO_LABEL text shown in the banner (default: Demo: 2026 races only)
   QUERY_SECONDS longest a single search may run before it is stopped (default 8)
-  AUTO_UPDATE set to 1 to check the release every 6 hours; when the database file there changes, download it
+  AUTO_UPDATE set to 1 to check the release every 30 minutes (CHECK_MINUTES changes it, 10 at the least); when the database file there changes, download it
              beside the old one, then restart so the new one is used (the host starts the app again)
 """
 import os, sys, io, time, json, shutil, zipfile, threading, collections, importlib
@@ -126,6 +126,15 @@ def fetch_new(url, data_dir, version):
         f.write(version)
 
 
+def check_seconds():
+    """How long to wait between release checks. CHECK_MINUTES sets it; default 30, never under 10."""
+    try:
+        m = int(os.environ.get('CHECK_MINUTES', '30'))
+    except ValueError:
+        m = 30
+    return max(10, m) * 60
+
+
 def updater_loop(url, data_dir):
     mark = os.path.join(data_dir, 'db.version')
     while True:
@@ -141,7 +150,7 @@ def updater_loop(url, data_dir):
                 log('database is current' if v else 'could not read the release version, will try later')
         except Exception as e:
             log('update check failed:', type(e).__name__)
-        time.sleep(6 * 3600)
+        time.sleep(check_seconds())
 
 
 class TimedLock:
