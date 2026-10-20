@@ -8,7 +8,7 @@ Settings (environment variables):
   DATA_DIR   a folder that survives restarts, for example a Railway volume mounted at /data (default ./data)
   DB_URL     address of the one-year database zip (default: SDM-2026.zip on this project's 'data' release)
   DEMO_LABEL text shown in the banner (default: Demo: 2026 races only)
-  QUERY_SECONDS longest a single search may run before it is stopped (default 8)
+  QUERY_SECONDS longest a single search may run before it is stopped (default 20)
   AUTO_UPDATE set to 1 to check the release every 30 minutes (CHECK_MINUTES changes it, 10 at the least); when the database file there changes, download it
              beside the old one, then restart so the new one is used (the host starts the app again)
 """
@@ -25,7 +25,7 @@ POST_OK = {'/api/search', '/api/owner-changes', '/api/best-speeds', '/api/curren
            '/api/graded-races', '/api/stakes-year', '/api/owner-rankings'}
 MAX_BODY = 20000                      # a search request is a few hundred bytes
 RATE_PER_MIN = 120                    # per visitor address
-QUERY_SECONDS = int(os.environ.get('QUERY_SECONDS', '8'))   # a query running longer than this is stopped
+QUERY_SECONDS = int(os.environ.get('QUERY_SECONDS', '20'))   # a query running longer than this is stopped
 CACHE_PATHS = {'/api/owner-rankings', '/api/first-time-starters', '/api/stakes-year', '/api/best-speeds', '/api/graded-races'}
 CACHE_MAX_BYTES = 64 * 1048576        # all kept answers together; the oldest are dropped first
 WARM_PATHS = ['/api/owner-rankings', '/api/first-time-starters', '/api/stakes-year']
