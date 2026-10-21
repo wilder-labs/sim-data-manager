@@ -209,6 +209,7 @@ tbody tr.yrline td{border-top:5px double #d9a62e}
 #grid td:last-child{border-right:0}
 
 </style>
+<style>#agefil label{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}#agefil input[type=checkbox]{width:13px;height:13px;margin:0;flex:none}</style>
 <style id="skin">
 /* ======== Modern look (overrides the classic styles above) ======== */
 :root{--bg:#f5f6fa;--panel:#ffffff;--ink:#1a2132;--mute:#6a7388;--line:#e7eaf1;--accent:#4a63e7;--accent-ink:#fff;--hi:#eef1fd;
@@ -650,9 +651,89 @@ html[data-theme] tbody tr.trline td{border-top:3px solid #ff86b8}
 html[data-theme] tbody tr.yrline td{border-top:6px double var(--gold)}
 html[data-theme="glass"][data-glow="studio"]{--gl:#5ba3e0;--gl2:#8ec1ee;--gl3:#2f7fc1;--glr:91,163,224;--glb:#dce6ef;--glbr:47,127,193;--bg:#061a33;--panel:rgba(11,37,69,.62);--line:rgba(140,185,235,.16);--cardline:rgba(140,185,235,.22);--accent-ink:#061a33}
 html[data-theme="glass"][data-glow="studio"] body{background-color:#061a33}
+/* ================= Racing Form theme: quiet newsprint tables ================= */
+html[data-theme="paper"]{
+ --bg:#efeadb;--panel:#faf7ee;--ink:#1c1a16;--mute:#625b4c;--line:#e2dac3;--accent:#8c1d1b;--accent-ink:#fff;--hi:#f1e8cc;--hover:#f3edda;--elev:#f3eedf;
+ --dirt:#b5823a;--turf:#43864b;--poly:#7a68a8;--fem:#b4457a;--male:#2f67a3;--good:#2a6b39;--bad:#a8201f;--slow:#7d5200;
+ --gold:#a97c1f;--cardline:#d6cdb2;--r:2px;--rb:2px;--rowh:5px;--shadow:none;
+ --win:#8c1d1b;--win-ink:#fff;--place:#2d5fa3;--place-ink:#fff;--show:#faf7ee;--show-ink:#1c1a16;--showline:#1c1a16;
+ --stripe:none;--bgimg:none;
+ --serif:Georgia,"Palatino Linotype",Cambria,serif;--disp:Georgia,"Palatino Linotype",Cambria,serif;--sans:Georgia,"Palatino Linotype",Cambria,serif;
+ --figbg:transparent;--figink:#1c1a16;--fighot:#8c1d1b;--fighotbg:transparent;--thrule:1px solid #1c1a16;--rowrule:1px solid #e6dfca;
+ color-scheme:light}
+html[data-theme="paper"] body{font-family:var(--serif);background-color:var(--bg);font-size:14px}
+html[data-theme="paper"] #menubar{border-top:3px solid var(--ink);box-shadow:inset 0 -1px 0 var(--ink);padding:10px 16px 12px 10px}
+html[data-theme="paper"] #menubar::after{display:none}
+html[data-theme="paper"] .brand .bw{font:700 17px/1.05 var(--serif);letter-spacing:.06em}
+html[data-theme="paper"] #menubar .nav,html[data-theme="paper"] .menu>button{font:600 12.5px var(--serif);letter-spacing:.02em;text-transform:none}
+html[data-theme="paper"] #search,html[data-theme="paper"] #gridwrap,html[data-theme="paper"] #side{border-radius:0;box-shadow:none;border:1px solid var(--cardline);border-top:1px solid var(--cardline);background:var(--panel)}
+html[data-theme="paper"] #search{border-top:3px double var(--ink)}
+html[data-theme="paper"] #search legend,html[data-theme="paper"] .fld span{font:600 11px var(--serif);letter-spacing:.08em;color:var(--mute)}
+html[data-theme="paper"] input[type=text],html[data-theme="paper"] input[type=number],html[data-theme="paper"] input[type=date],html[data-theme="paper"] input[type=password],html[data-theme="paper"] select,html[data-theme="paper"] textarea{background:#fffdf6;border-color:#c9bf9f;font-family:var(--serif)}
+html[data-theme="paper"] button.primary{font:700 12.5px var(--serif);letter-spacing:.04em;text-transform:none;box-shadow:none;background:var(--ink);border-color:var(--ink);color:#faf7ee}
+html[data-theme="paper"] #status{border-bottom:var(--thrule)}
+html[data-theme="paper"] #count{font:700 18px/1 var(--serif);letter-spacing:0}
+html[data-theme="paper"] #filter{border-radius:2px}
+/* the table itself: no cell dividers, one hairline per row */
+html[data-theme="paper"] #scroll{padding:0 14px 12px}
+html[data-theme="paper"] table{border-collapse:collapse}
+html[data-theme="paper"] thead th{background:var(--panel);font:600 10.5px var(--serif);letter-spacing:.07em;text-transform:uppercase;color:var(--mute);padding:11px 10px 7px;border-bottom:1px solid var(--ink)}
+html[data-theme="paper"] thead th.sorted{color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
+html[data-theme="paper"] thead th+th,html[data-theme="paper"] tbody td+td{border-left:0}
+html[data-theme="paper"] tbody td{padding:var(--rowh) 10px;font-size:13.5px;line-height:1.3;border-bottom:1px solid #ddd4ba;font-variant-numeric:lining-nums tabular-nums}
+html[data-theme="paper"] tbody tr:hover td{background:var(--hover)!important}
+html[data-theme="paper"] tbody tr.sel td{background:var(--hi)!important}
+html[data-theme="paper"] tbody tr.D td,html[data-theme="paper"] tbody tr.T td,html[data-theme="paper"] tbody tr.P td{background:transparent}
+html[data-theme="paper"] tbody tr.D td:first-child{box-shadow:inset 2px 0 0 var(--dirt)}
+html[data-theme="paper"] tbody tr.T td:first-child{box-shadow:inset 2px 0 0 var(--turf)}
+html[data-theme="paper"] tbody tr.P td:first-child{box-shadow:inset 2px 0 0 var(--poly)}
+html[data-theme="paper"] tbody tr.farm td{background:color-mix(in srgb,#4a8cff 8%,transparent)}
+html[data-theme="paper"] tbody tr.farm td:first-child{box-shadow:inset 2px 0 0 #4a8cff}
+html[data-theme="paper"] tbody tr.yrbreak td{border-top:1px solid var(--ink)}
+html[data-theme="paper"] tbody tr.trline td{border-top:1px solid var(--ink)}
+html[data-theme="paper"] tbody tr.yrline td{border-top:3px double var(--ink)}
+html[data-theme="paper"] td[data-k="hname"]{font:700 14px var(--serif);letter-spacing:0;text-transform:none}
+html[data-theme="paper"] td[data-k="hid"] a{font:400 12px Consolas,"Cascadia Mono",monospace}
+html[data-theme="paper"] td[data-k="track"]{font:700 12px var(--serif);letter-spacing:.06em;color:var(--ink)}
+html[data-theme="paper"] td[data-k="oname"] a{font-weight:400}
+/* finish marks, surface chips and figures: plain print, no pills */
+html[data-theme="paper"] .pos{min-width:22px;height:22px;font:700 12.5px var(--serif);border-radius:50%;border:1px solid var(--line)}
+html[data-theme="paper"] .sf{height:auto;min-width:0;padding:0 5px;border-radius:2px;font:700 11px var(--serif);letter-spacing:.04em}
+html[data-theme="paper"] .fig{min-width:0;padding:0 2px;font:700 13.5px var(--serif);background:transparent;box-shadow:none;border-radius:0}
+html[data-theme="paper"] .fig.mid{box-shadow:inset 0 -1px 0 var(--gold)}
+html[data-theme="paper"] .fig.hi{background:transparent;color:var(--fighot);text-decoration:underline;text-underline-offset:3px}
+html[data-theme="paper"] td.spd{font-weight:700}
+/* side card and dialogs */
+html[data-theme="paper"] #side::before{display:none}
+html[data-theme="paper"] #side h3{font:700 20px/1.15 var(--serif);letter-spacing:0;text-transform:none}
+html[data-theme="paper"] #side h4{font:700 11px var(--serif);letter-spacing:.1em;color:var(--ink)}
+html[data-theme="paper"] #side h4::after{height:0;border-top:1px solid var(--ink);background:none;opacity:1}
+html[data-theme="paper"] a.viewerlink{font:600 12px var(--serif);letter-spacing:.04em;text-transform:none}
+html[data-theme="paper"] #empty{color:var(--mute)}
+html[data-theme="paper"] #empty::before{background:var(--ink);opacity:.35}
+html[data-theme="paper"] dialog,html[data-theme="paper"] .drop,html[data-theme="paper"] #themepop,html[data-theme="paper"] .colpop{border-radius:2px;box-shadow:0 6px 20px rgba(40,32,10,.18)}
+html[data-theme="paper"] #themebtn::before{box-shadow:0 0 0 2px var(--panel),0 0 0 3px var(--accent)}
+html[data-theme="paper"] .rz::after{background:var(--mute);opacity:0;width:1px}
+html[data-theme="paper"] .rz:hover::after,html[data-theme="paper"] .rz.drag::after{opacity:.7}
+html[data-theme="paper"] .rz:hover,html[data-theme="paper"] .rz.drag{background:transparent}
+html[data-theme="paper"] a.ownerlink,html[data-theme="paper"] a.horselink,html[data-theme="paper"] a.racelink,html[data-theme="paper"] a.sidehorse,html[data-theme="paper"] a.grplink{border-bottom:1px solid transparent;font-weight:inherit}
+html[data-theme="paper"] a.ownerlink:hover,html[data-theme="paper"] a.horselink:hover,html[data-theme="paper"] a.racelink:hover{border-bottom-color:var(--accent)}
+html[data-theme="paper"] #side a.ownerlink,html[data-theme="paper"] #side a.horselink{font-weight:600}
+html[data-theme="paper"] .pos{min-width:0;height:auto;padding:0 2px;border:0;border-radius:0;background:transparent;color:var(--mute);font-weight:400}
+html[data-theme="paper"] .pos.p1{background:transparent;color:var(--win);font-weight:700}
+html[data-theme="paper"] .pos.p2{background:transparent;color:var(--place);font-weight:700}
+html[data-theme="paper"] .pos.p3{background:transparent;color:var(--ink);font-weight:700;border:0}
+html[data-theme="paper"] .sf,html[data-theme="paper"] .sf.sD,html[data-theme="paper"] .sf.sT,html[data-theme="paper"] .sf.sP{background:transparent;color:var(--ink);padding:0 1px;border-radius:0;font-weight:600}
+html[data-theme="paper"] .sf.sD{box-shadow:inset 0 -2px 0 var(--dirt)}
+html[data-theme="paper"] .sf.sT{box-shadow:inset 0 -2px 0 var(--turf)}
+html[data-theme="paper"] .sf.sP{box-shadow:inset 0 -2px 0 var(--poly)}
+html[data-theme="paper"] #agefil label,html[data-theme="paper"] #newown,html[data-theme="paper"] #bestspd,html[data-theme="paper"] #stakes,html[data-theme="paper"] #ownrank,html[data-theme="paper"] #debut{background:transparent}
+html[data-theme="paper"] #filter{background:#fffdf6}
+html[data-theme] #agefil label{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;line-height:1.2;vertical-align:middle}
+html[data-theme] #agefil input[type=checkbox]{width:13px;height:13px;margin:0;flex:none}
 </style>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJz48cmVjdCB3aWR0aD0nMTAwJyBoZWlnaHQ9JzEwMCcgcng9JzIwJyBmaWxsPScjMEIyNTQ1Jy8+PGcgdHJhbnNmb3JtPSdyb3RhdGUoMTgwIDUwIDUwKSB0cmFuc2xhdGUoMTAgMTApIHNjYWxlKC44KSc+PHBhdGggZmlsbD0nIzVCQTNFMCcgZmlsbC1ydWxlPSdldmVub2RkJyBkPSdNMjAgOTBDNiA3MiA0IDQwIDIyIDIxIDM2IDcgNjQgNyA3OCAyMSA5NiA0MCA5NCA3MiA4MCA5MEg2MkM2OSA3MiA3MSA1MiA2MiA0MSA1NiAzMyA0NCAzMyAzOCA0MSAyOSA1MiAzMSA3MiAzOCA5MFpNMTcgNzBhMy41IDMuNSAwIDEgMCAuMSAwWk0xNSA1NGEzLjUgMy41IDAgMSAwIC4xIDBaTTE5IDM4YTMuNSAzLjUgMCAxIDAgLjEgMFpNMjkgMjRhMy41IDMuNSAwIDEgMCAuMSAwWk00NCAxN2EzLjUgMy41IDAgMSAwIC4xIDBaTTYwIDE3YTMuNSAzLjUgMCAxIDAgLjEgMFpNNzUgMjRhMy41IDMuNSAwIDEgMCAuMSAwWk04NSAzOGEzLjUgMy41IDAgMSAwIC4xIDBaTTg5IDU0YTMuNSAzLjUgMCAxIDAgLjEgMFpNODcgNzBhMy41IDMuNSAwIDEgMCAuMSAwWicvPjwvZz48L3N2Zz4=">
-<script>try{var R=document.documentElement,t=localStorage.getItem('sdm_theme'),g=localStorage.getItem('sdm_glow');if(['glass','classic'].indexOf(t)<0)t='glass';if(['studio','mint','ice','violet','amber','rose'].indexOf(g)<0)g='studio';R.setAttribute('data-theme',t);R.setAttribute('data-glow',g);if(t==='classic'){var k=document.getElementById('skin');if(k)k.media='not all'}}catch(e){document.documentElement.setAttribute('data-theme','glass')}</script>
+<script>try{var R=document.documentElement,t=localStorage.getItem('sdm_theme'),g=localStorage.getItem('sdm_glow');if(['glass','classic','paper'].indexOf(t)<0)t='glass';if(['studio','mint','ice','violet','amber','rose'].indexOf(g)<0)g='studio';R.setAttribute('data-theme',t);R.setAttribute('data-glow',g);if(t==='classic'){var k=document.getElementById('skin');if(k)k.media='not all'}}catch(e){document.documentElement.setAttribute('data-theme','glass')}</script>
 </head>
 <body>
 <div id="menubar">
@@ -1511,7 +1592,7 @@ setTimeout(async()=>{try{const r=await api('/api/update/status');
 
 // ---- look: theme and glow colour
 {const b=$('#themebtn'),R=document.documentElement,SK=document.getElementById('skin');
- const TH=[['glass','Glass Paddock','Frosted glass over a night sky'],['classic','Classic','The original look, follows Windows light and dark']],GL=[['studio','Studio Blue','#5ba3e0'],['mint','Mint','#5be3c8'],['ice','Ice','#6cc3ff'],['violet','Violet','#b89bff'],['amber','Amber','#ffc247'],['rose','Rose','#ff86b8']];
+ const TH=[['glass','Glass Paddock','Frosted glass over a night sky'],['classic','Classic','The original look, follows Windows light and dark'],['paper','Racing Form','Newsprint: quiet rules, serif type, like the printed form']],GL=[['studio','Studio Blue','#5ba3e0'],['mint','Mint','#5be3c8'],['ice','Ice','#6cc3ff'],['violet','Violet','#b89bff'],['amber','Amber','#ffc247'],['rose','Rose','#ff86b8']];
  const pop=document.createElement('div');pop.id='themepop';pop.hidden=true;document.body.appendChild(pop);
  const cur=()=>R.getAttribute('data-theme')||'glass',glow=()=>R.getAttribute('data-glow')||'studio';
  const paint=()=>{const t=TH.find(x=>x[0]===cur())||TH[0],g=GL.find(x=>x[0]===glow())||GL[0];b.textContent=t[0]==='glass'?g[1]:t[1];if(SK)SK.media=cur()==='classic'?'not all':'all'};
