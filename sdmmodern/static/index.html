@@ -732,6 +732,12 @@ html[data-theme="paper"] #filter{background:#fffdf6}
 html[data-theme] #agefil label{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;line-height:1.2;vertical-align:middle}
 html[data-theme] #agefil input[type=checkbox]{width:13px;height:13px;margin:0;flex:none}
 html[data-theme="paper"] dialog a:not(.viewerlink){color:var(--accent);text-decoration:underline}
+#coffeebtn{font:600 11.5px var(--disp,inherit);letter-spacing:.06em;padding:6px 12px;border:1px solid var(--cardline,var(--line));border-radius:var(--rb,6px);background:var(--elev);color:var(--ink);white-space:nowrap;cursor:pointer}
+#coffeebtn:hover{background:var(--hi)}
+.coffee h3{margin:0 0 8px}.coffee p{margin:8px 0;line-height:1.5}
+.coffee .acct{display:flex;align-items:center;gap:10px;margin:12px 0;padding:10px 12px;border:1px dashed var(--mute);border-radius:var(--rb,6px);background:var(--elev)}
+.coffee .acct b{font:700 18px var(--serif,inherit);letter-spacing:.02em;user-select:all;flex:1}
+.coffee .acct span{font-size:12px;color:var(--mute)}
 </style>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJz48cmVjdCB3aWR0aD0nMTAwJyBoZWlnaHQ9JzEwMCcgcng9JzIwJyBmaWxsPScjMEIyNTQ1Jy8+PGcgdHJhbnNmb3JtPSdyb3RhdGUoMTgwIDUwIDUwKSB0cmFuc2xhdGUoMTAgMTApIHNjYWxlKC44KSc+PHBhdGggZmlsbD0nIzVCQTNFMCcgZmlsbC1ydWxlPSdldmVub2RkJyBkPSdNMjAgOTBDNiA3MiA0IDQwIDIyIDIxIDM2IDcgNjQgNyA3OCAyMSA5NiA0MCA5NCA3MiA4MCA5MEg2MkM2OSA3MiA3MSA1MiA2MiA0MSA1NiAzMyA0NCAzMyAzOCA0MSAyOSA1MiAzMSA3MiAzOCA5MFpNMTcgNzBhMy41IDMuNSAwIDEgMCAuMSAwWk0xNSA1NGEzLjUgMy41IDAgMSAwIC4xIDBaTTE5IDM4YTMuNSAzLjUgMCAxIDAgLjEgMFpNMjkgMjRhMy41IDMuNSAwIDEgMCAuMSAwWk00NCAxN2EzLjUgMy41IDAgMSAwIC4xIDBaTTYwIDE3YTMuNSAzLjUgMCAxIDAgLjEgMFpNNzUgMjRhMy41IDMuNSAwIDEgMCAuMSAwWk04NSAzOGEzLjUgMy41IDAgMSAwIC4xIDBaTTg5IDU0YTMuNSAzLjUgMCAxIDAgLjEgMFpNODcgNzBhMy41IDMuNSAwIDEgMCAuMSAwWicvPjwvZz48L3N2Zz4=">
 <script>try{var R=document.documentElement,t=localStorage.getItem('sdm_theme'),g=localStorage.getItem('sdm_glow');if(['glass','classic','paper'].indexOf(t)<0)t='paper';if(['studio','mint','ice','violet','amber','rose'].indexOf(g)<0)g='studio';R.setAttribute('data-theme',t);R.setAttribute('data-glow',g);if(t==='classic'){var k=document.getElementById('skin');if(k)k.media='not all'}}catch(e){document.documentElement.setAttribute('data-theme','paper')}</script>
@@ -761,6 +767,7 @@ html[data-theme="paper"] dialog a:not(.viewerlink){color:var(--accent);text-deco
   <div class="menu"><button>Help</button><div class="drop"><button data-act="help">How to Use This</button><button data-act="update">Check for Updates</button><button data-act="about">About Sim Data Manager</button><button data-act="exit">Exit Sim Data Manager</button></div></div>
   <a id="datachip" class="datachip" href="http://denovo.eu5.net/SSSarch.php" target="_blank" rel="noopener" style="margin-left:auto" title="The dates your race data covers. Click to open the denovo archive in your browser and check whether a newer pack is out.">Race data</a>
   <button type="button" id="panelbtn" title="Show or hide the search box to make room for results">Panel</button>
+  <button type="button" id="coffeebtn" title="Support the hosting costs">☕ Coffee</button>
   <button type="button" id="themebtn" title="Choose a theme">Theme</button>
 </div>
 
@@ -1611,6 +1618,16 @@ setTimeout(async()=>{try{const r=await api('/api/update/status');
 {const b=$('#panelbtn'),f=$('#search');let m=false;try{m=localStorage.getItem('sdm_panelmin')==='1'}catch(e){}
  const paint=()=>{f.classList.toggle('min',m);b.textContent=m?'\u25BE Show panel':'\u25B4 Hide panel'};
  b.onclick=()=>{m=!m;try{localStorage.setItem('sdm_panelmin',m?'1':'0')}catch(e){}paint()};paint()}
+
+// ---- coffee button
+$('#coffeebtn').onclick=()=>{dialog(`<div class="coffee" style="max-width:460px"><h3>\u2615 Buy me a coffee</h3>
+<p>Sim Data Manager is free. The website version costs a few dollars a month to host, and I run it to practice live deployments for my portfolio.</p>
+<p>If it saves you time, there are two ways to chip in. Neither is required, and the tool works the same either way.</p>
+<div class="acct"><span>Sim credit<br>to account</span><b id="cfacct">unreal</b><button type="button" id="cfcopy">Copy name</button></div>
+<div class="acct"><span>Or a dollar<br>or two</span><b><a href="https://ko-fi.com/wilderlabsstudio" target="_blank" rel="noopener">Ko-fi \u2197</a></b></div>
+<div class="small">For sim credit, use the sim's usual credit transfer. Nothing is sent from this program. The Ko-fi link opens in your browser only when you click it.</div>
+<div class="btns"><button type="button" class="primary" onclick="closeDlg()">Close</button></div></div>`);
+ $('#cfcopy').onclick=async()=>{const t='unreal';try{await navigator.clipboard.writeText(t);$('#cfcopy').textContent='Copied'}catch(e){const r=document.createRange();r.selectNodeContents($('#cfacct'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('#cfcopy').textContent='Press Ctrl+C'}}};
 </script>
 </body>
 </html>
