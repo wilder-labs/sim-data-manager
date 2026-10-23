@@ -764,7 +764,7 @@ html[data-theme="paper"] dialog a:not(.viewerlink){color:var(--accent);text-deco
     <button data-act="tracks">Track Codes…</button>
     <button data-act="compact">Shrink Database</button>
     <button data-act="simreset">Show the sim-site login reminder again</button><hr><button data-act="dbinfo">Database Summary…</button></div></div>
-  <div class="menu"><button>Help</button><div class="drop"><button data-act="guide">Open the Guide (in your browser)</button><button data-act="help">How to Use This</button><button data-act="update">Check for Updates</button><button data-act="about">About Sim Data Manager</button><button data-act="exit">Exit Sim Data Manager</button></div></div>
+  <div class="menu"><button>Help</button><div class="drop"><button data-act="guide">Open the Guide (in your browser)</button><button data-act="help">How to Use This</button><button data-act="mail">Message the developer</button><button data-act="update">Check for Updates</button><button data-act="about">About Sim Data Manager</button><button data-act="exit">Exit Sim Data Manager</button></div></div>
   <a id="datachip" class="datachip" href="http://denovo.eu5.net/SSSarch.php" target="_blank" rel="noopener" style="margin-left:auto" title="The dates your race data covers. Click to open the denovo archive in your browser and check whether a newer pack is out.">Race data</a>
   <button type="button" id="panelbtn" title="Show or hide the search box to make room for results">Panel</button>
   <button type="button" id="coffeebtn" title="Support the hosting costs">☕ Coffee</button>
@@ -1290,6 +1290,7 @@ async function wkDate(w){try{return (await api('/api/date?week='+w)).date}catch(
 const actions={
   simreset(){try{localStorage.removeItem('sdm_simok2')}catch(e){}toast('The reminder will show the next time you click View on sim site.')},
   guide(){window.open('https://wilderlabs.studio/sim-tools/sim-data-manager-guide/','_blank','noopener')},
+  mail(){window.location.href='mailto:jefwilder@wilderlabs.studio?subject='+encodeURIComponent('Sim Data Manager')},
   denovo(){window.open('http://denovo.eu5.net/SSSarch.php','_blank','noopener')},
  import(){
   dialog(`<h3>Add a Data File</h3><div class="small" style="margin-bottom:6px">Need a pack? <a href="http://denovo.eu5.net/SSSarch.php" target="_blank" rel="noopener">Open the denovo archive in your browser</a> and download it first.</div><div class="small">Choose a weekly data file: the <b>.7z</b> as you downloaded it, or the <b>.mdb</b> or <b>.zip</b> inside it.</div>
