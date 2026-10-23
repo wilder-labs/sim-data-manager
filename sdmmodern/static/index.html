@@ -733,7 +733,7 @@ html[data-theme] #agefil label{display:inline-flex;align-items:center;gap:5px;pa
 html[data-theme] #agefil input[type=checkbox]{width:13px;height:13px;margin:0;flex:none}
 </style>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJz48cmVjdCB3aWR0aD0nMTAwJyBoZWlnaHQ9JzEwMCcgcng9JzIwJyBmaWxsPScjMEIyNTQ1Jy8+PGcgdHJhbnNmb3JtPSdyb3RhdGUoMTgwIDUwIDUwKSB0cmFuc2xhdGUoMTAgMTApIHNjYWxlKC44KSc+PHBhdGggZmlsbD0nIzVCQTNFMCcgZmlsbC1ydWxlPSdldmVub2RkJyBkPSdNMjAgOTBDNiA3MiA0IDQwIDIyIDIxIDM2IDcgNjQgNyA3OCAyMSA5NiA0MCA5NCA3MiA4MCA5MEg2MkM2OSA3MiA3MSA1MiA2MiA0MSA1NiAzMyA0NCAzMyAzOCA0MSAyOSA1MiAzMSA3MiAzOCA5MFpNMTcgNzBhMy41IDMuNSAwIDEgMCAuMSAwWk0xNSA1NGEzLjUgMy41IDAgMSAwIC4xIDBaTTE5IDM4YTMuNSAzLjUgMCAxIDAgLjEgMFpNMjkgMjRhMy41IDMuNSAwIDEgMCAuMSAwWk00NCAxN2EzLjUgMy41IDAgMSAwIC4xIDBaTTYwIDE3YTMuNSAzLjUgMCAxIDAgLjEgMFpNNzUgMjRhMy41IDMuNSAwIDEgMCAuMSAwWk04NSAzOGEzLjUgMy41IDAgMSAwIC4xIDBaTTg5IDU0YTMuNSAzLjUgMCAxIDAgLjEgMFpNODcgNzBhMy41IDMuNSAwIDEgMCAuMSAwWicvPjwvZz48L3N2Zz4=">
-<script>try{var R=document.documentElement,t=localStorage.getItem('sdm_theme'),g=localStorage.getItem('sdm_glow');if(['glass','classic','paper'].indexOf(t)<0)t='glass';if(['studio','mint','ice','violet','amber','rose'].indexOf(g)<0)g='studio';R.setAttribute('data-theme',t);R.setAttribute('data-glow',g);if(t==='classic'){var k=document.getElementById('skin');if(k)k.media='not all'}}catch(e){document.documentElement.setAttribute('data-theme','glass')}</script>
+<script>try{var R=document.documentElement,t=localStorage.getItem('sdm_theme'),g=localStorage.getItem('sdm_glow');if(['glass','classic','paper'].indexOf(t)<0)t='paper';if(['studio','mint','ice','violet','amber','rose'].indexOf(g)<0)g='studio';R.setAttribute('data-theme',t);R.setAttribute('data-glow',g);if(t==='classic'){var k=document.getElementById('skin');if(k)k.media='not all'}}catch(e){document.documentElement.setAttribute('data-theme','paper')}</script>
 </head>
 <body>
 <div id="menubar">
@@ -1594,8 +1594,8 @@ setTimeout(async()=>{try{const r=await api('/api/update/status');
 {const b=$('#themebtn'),R=document.documentElement,SK=document.getElementById('skin');
  const TH=[['glass','Glass Paddock','Frosted glass over a night sky'],['classic','Classic','The original look, follows Windows light and dark'],['paper','Racing Form','Newsprint: quiet rules, serif type, like the printed form']],GL=[['studio','Studio Blue','#5ba3e0'],['mint','Mint','#5be3c8'],['ice','Ice','#6cc3ff'],['violet','Violet','#b89bff'],['amber','Amber','#ffc247'],['rose','Rose','#ff86b8']];
  const pop=document.createElement('div');pop.id='themepop';pop.hidden=true;document.body.appendChild(pop);
- const cur=()=>R.getAttribute('data-theme')||'glass',glow=()=>R.getAttribute('data-glow')||'studio';
- const paint=()=>{const t=TH.find(x=>x[0]===cur())||TH[0],g=GL.find(x=>x[0]===glow())||GL[0];b.textContent=t[0]==='glass'?g[1]:t[1];if(SK)SK.media=cur()==='classic'?'not all':'all'};
+ const cur=()=>R.getAttribute('data-theme')||'paper',glow=()=>R.getAttribute('data-glow')||'studio';
+ const paint=()=>{const t=TH.find(x=>x[0]===cur())||TH[2],g=GL.find(x=>x[0]===glow())||GL[0];b.textContent=t[0]==='glass'?g[1]:t[1];if(SK)SK.media=cur()==='classic'?'not all':'all'};
  const save=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
  const draw=()=>{pop.innerHTML='<div class="h">Theme</div>'+TH.map(x=>`<button type="button" data-t="${x[0]}" class="${x[0]===cur()?'cur':''}"><span>${x[1]}<small>${x[2]}</small></span></button>`).join('')
   +(cur()==='glass'?'<div class="h">Glow colour</div><div class="gls">'+GL.map(x=>`<button type="button" data-g="${x[0]}" class="${x[0]===glow()?'cur':''}" title="${x[1]}" aria-label="${x[1]}"><i style="background:${x[2]}"></i><span>${x[1]}</span></button>`).join('')+'</div>':'');
