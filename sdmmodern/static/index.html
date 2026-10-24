@@ -89,7 +89,9 @@ table#grid.banded thead th:nth-child(even){background-image:linear-gradient(rgba
 #ctx button:hover{background:var(--hi)}
 a.ownerlink,a.horselink,a.racelink,a.sidehorse,a.grplink{color:var(--accent);text-decoration:underline;cursor:pointer}
 table#grid.fixed{table-layout:fixed;width:100%}
-table#grid.fixed th,table#grid.fixed td{overflow:hidden;text-overflow:ellipsis}
+table#grid.fixed th,table#grid.fixed td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table#grid.measure{table-layout:auto}
+table#grid.measure th,table#grid.measure td{white-space:nowrap;overflow:visible;text-overflow:clip}
 thead th{position:sticky}
 a.viewerlink{display:inline-block;padding:5px 12px;border:1px solid var(--accent);border-radius:5px;color:var(--accent);font-weight:600;text-decoration:none}a.viewerlink:hover{background:var(--hi)}
 thead th.dragover{box-shadow:inset 3px 0 0 var(--accent)}thead th.dragging{opacity:.4}
@@ -1072,31 +1074,95 @@ function showCandidates(r){
 }
 
 // ---- grid
-let WID={};try{WID=JSON.parse(localStorage.getItem('sdm_colw2')||'{}')}catch(e){}
-function saveWid(){try{localStorage.setItem('sdm_colw2',JSON.stringify(WID))}catch(e){}}
-function fitCols(){
-  // Widths are kept as proportions of the table, so the columns stretch and shrink with the window.
-  const t=$('#grid');
-  const ths=$$('#grid thead th');
-  if(!WID.run_cond)WID.run_cond=300;
-  if(ths.some(th=>!WID[th.dataset.k])){const oc=t.querySelector('colgroup');if(oc)oc.remove();t.classList.remove('fixed');t.style.minWidth='';t.style.width='max-content'}  // measure each column at its natural size
-  ths.forEach(th=>{const k=th.dataset.k;if(!WID[k])WID[k]=Math.max(40,Math.ceil(th.getBoundingClientRect().width))});
-  t.style.width='';
+// Column widths: each column is measured at the size its own data needs, so a column of single digits stays thin
+// and Horse and Trainer always show every letter. Spare room goes to the text columns; when the window is too
+// narrow, the long text columns are squeezed first. A width the user dragged by hand is kept as dragged.
+let UW={};try{UW=JSON.parse(localStorage.getItem('sdm_colw3')||'{}')}catch(e){}
+function saveUW(){try{localStorage.setItem('sdm_colw3',JSON.stringify(UW))}catch(e){}}
+const KEEPW=new Set(['hname','oname','stable']);   // never cut off
+const FIXTXT=new Set(['date','last_date','plan_date','bred','track','last_track','surf','cond','age','sex','h_sex','h_age']);   // short codes and dates: never squeezed, never stretched
+let NAT={},NUMK=new Set(),lastAvail=-1;
+function setNat(k,v){NAT[k]=(KEEPW.has(k)||NUMK.has(k))?v:Math.min(v,320)}
+function measureNat(){
+  const t=$('#grid'),ths=$$('#grid thead th');
+  const oc=t.querySelector('colgroup');if(oc)oc.remove();
+  t.classList.remove('fixed');t.classList.add('measure');t.style.width='max-content';t.style.minWidth='';
+  NAT={};NUMK=new Set();
+  ths.forEach(th=>{if(th.classList.contains('num'))NUMK.add(th.dataset.k)});
+  // names further down the list than the rows drawn so far still count: measure the longest ones too
+  let probe=null;
+  try{const tb=t.tBodies[0],keys=ths.map(th=>th.dataset.k);
+    if(tb&&view&&view.length>tb.rows.length){const best={};
+      for(let i=tb.rows.length;i<view.length;i++){KEEPW.forEach(k=>{const v=view[i][k];if(v&&(!best[k]||String(v).length>best[k].length))best[k]=String(v)})}
+      const ks=Object.keys(best).filter(k=>keys.includes(k));
+      if(ks.length){probe=document.createElement('tr');probe.innerHTML=keys.map(k=>`<td data-k="${k}">${ks.includes(k)?`<a href="#" class="${k==='hname'?'horselink':'ownerlink'}">${esc(best[k])}</a>`:''}</td>`).join('');tb.appendChild(probe)}}}
+  catch(e){probe=null}
+  ths.forEach(th=>setNat(th.dataset.k,Math.ceil(th.getBoundingClientRect().width)));
+  if(probe)probe.remove();
+  t.classList.remove('measure');t.style.width='';
+}
+function layoutCols(){
+  const t=$('#grid'),ths=$$('#grid thead th'),sc=$('#scroll');
+  if(!ths.length||t.hidden)return;
+  const avail=Math.floor(sc.clientWidth-(parseFloat(getComputedStyle(sc).paddingLeft)||0)-(parseFloat(getComputedStyle(sc).paddingRight)||0));
+  lastAvail=avail;
+  const ks=ths.map(th=>th.dataset.k);
+  const fixed=ks.map(k=>!!UW[k]);
+  const w=ks.map((k,i)=>fixed[i]?Math.max(30,UW[k]):(NAT[k]||60));
+  const sum=()=>w.reduce((a,x)=>a+x,0);
+  if(sum()>avail){
+    const def=sum()-avail;
+    const room=ks.map((k,i)=>(fixed[i]||KEEPW.has(k)||NUMK.has(k)||FIXTXT.has(k)||NAT[k]<100)?0:Math.max(0,w[i]-Math.max(64,Math.round(NAT[k]*.6))));
+    const R=room.reduce((a,x)=>a+x,0);
+    if(R>0){const take=Math.min(def,R);room.forEach((r,i)=>{w[i]-=take*r/R})}
+  }else{
+    let extra=avail-sum();
+    const gw=ks.map((k,i)=>(fixed[i]||NUMK.has(k)||FIXTXT.has(k)||NAT[k]<60)?0:(KEEPW.has(k)?3:1));
+    for(let pass=0;pass<6&&extra>0.5;pass++){
+      const open=gw.map((g,i)=>(g&&w[i]<NAT[ks[i]]*2.2)?g:0),G=open.reduce((a,x)=>a+x,0);
+      if(!G)break;
+      let used=0;open.forEach((g,i)=>{if(!g)return;const add=Math.min(extra*g/G,NAT[ks[i]]*2.2-w[i]);w[i]+=add;used+=add});
+      extra-=used;if(used<0.5)break}
+    if(extra>0.5){const G=gw.reduce((a,x)=>a+x,0);if(G)gw.forEach((g,i)=>{w[i]+=extra*g/G})}
+  }
   let cg=t.querySelector('colgroup');if(cg)cg.remove();
   cg=document.createElement('colgroup');
-  const total=()=>ths.reduce((a,th)=>a+WID[th.dataset.k],0);
-  const cols=ths.map(th=>{const c=document.createElement('col');cg.appendChild(c);return c});
-  const paint=()=>{const T=total();ths.forEach((th,i)=>cols[i].style.width=(100*WID[th.dataset.k]/T)+'%')};
-  paint();t.insertBefore(cg,t.firstChild);t.style.minWidth=Math.max(ths.length*48,total())+'px';t.classList.add('fixed');
-  ths.forEach((th,i)=>{const h=document.createElement('span');h.className='rz';h.title='Drag to resize. Double-click to reset all column widths.';
+  const px=w.map(x=>Math.round(x));
+  px.forEach(x=>{const c=document.createElement('col');c.style.width=x+'px';cg.appendChild(c)});
+  t.insertBefore(cg,t.firstChild);t.classList.add('fixed');
+  t.style.minWidth='';t.style.width=px.reduce((a,x)=>a+x,0)+'px';
+}
+// rows drawn after the first batch (scrolling) may hold a longer name: widen the column if so
+function growCheck(from){
+  const t=$('#grid'),ths=$$('#grid thead th');if(!ths.length||!t.tBodies[0])return;
+  const trs=[...t.tBodies[0].rows].slice(from);if(!trs.length)return;
+  const pr=parseFloat(getComputedStyle(trs[0].cells[0]||t).paddingRight)||8;let ch=false;
+  trs.forEach(tr=>{for(let i=0;i<tr.cells.length&&i<ths.length;i++){const td=tr.cells[i],k=ths[i].dataset.k;
+    if(UW[k])continue;const sw=td.scrollWidth;
+    if(sw>td.clientWidth+1){const need=Math.ceil(sw+pr);if(need>(NAT[k]||0)){setNat(k,need);ch=true}}}});
+  if(ch)layoutCols();
+}
+function fitCols(){
+  const t=$('#grid'),ths=$$('#grid thead th');
+  if(!ths.length)return;
+  measureNat();layoutCols();
+  ths.forEach(th=>{const h=document.createElement('span');h.className='rz';h.title='Drag to resize. Double-click to go back to automatic widths.';
     h.onclick=e=>e.stopPropagation();
-    h.ondblclick=e=>{e.stopPropagation();WID={};saveWid();render()};
-    h.onmousedown=e=>{e.preventDefault();e.stopPropagation();const k=th.dataset.k,x0=e.clientX,px0=th.getBoundingClientRect().width,per=total()/t.getBoundingClientRect().width;h.classList.add('drag');
-      const mv=ev=>{WID[k]=Math.max(30*per,(px0+ev.clientX-x0)*per);paint()};
-      const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);h.classList.remove('drag');saveWid()};
+    h.ondblclick=e=>{e.stopPropagation();UW={};saveUW();layoutCols()};
+    h.onmousedown=e=>{e.preventDefault();e.stopPropagation();const k=th.dataset.k,x0=e.clientX,w0=th.getBoundingClientRect().width;h.classList.add('drag');
+      const mv=ev=>{UW[k]=Math.max(30,Math.round(w0+ev.clientX-x0));layoutCols()};
+      const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);h.classList.remove('drag');saveUW()};
       document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up)};
     th.appendChild(h)});
 }
+// refit when the window, the side panel or the scroll bar changes the room available
+{let raf=0;const again=()=>{raf=0;const sc=$('#scroll');if(!sc||$('#grid').hidden)return;
+    layoutCols()};
+  if(window.ResizeObserver)new ResizeObserver(()=>{if(!raf)raf=requestAnimationFrame(again)}).observe($('#scroll'));
+  else window.addEventListener('resize',()=>{if(!raf)raf=requestAnimationFrame(again)})}
+// a text cell that had to be shortened shows its full text when you point at it
+$('#grid').addEventListener('mouseover',e=>{const td=e.target.closest&&e.target.closest('td');
+  if(td&&!td.title&&td.scrollWidth>td.clientWidth+1&&!td.querySelector('[title]'))td.title=td.textContent});
 {let on=true;try{on=localStorage.getItem('sdm_band')!=='0'}catch(e){}
   $('#band').checked=on;$('#grid').classList.toggle('banded',on);
   $('#band').onchange=()=>{const v=$('#band').checked;$('#grid').classList.toggle('banded',v);try{localStorage.setItem('sdm_band',v?'1':'0')}catch(e){}}}
@@ -1124,8 +1190,8 @@ function columnsDialog(){
     $$('#collist [data-up]').forEach(b=>b.onclick=()=>{const i=+b.dataset.up;[order[i-1],order[i]]=[order[i],order[i-1]];draw();apply()});
     $$('#collist [data-dn]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dn;[order[i+1],order[i]]=[order[i],order[i+1]];draw();apply()})};
   const apply=()=>{if(order.every(k=>hid.has(k))){hid.delete(order[0])}setLayout(order.slice(),[...hid])};
-  dialog(`<h3>Columns</h3><div class="small">Tick the columns you want to see and use the arrows to move them. You can also drag a column heading to move it. Your choice is remembered for this kind of list.</div><div id="collist" style="max-height:340px;overflow:auto;margin-top:8px"></div><div class="btns"><button id="colreset">Show all, original order</button><button class="primary" onclick="closeDlg()">Done</button></div>`);
-  draw();$('#colreset').onclick=()=>{delete LAYOUT[viewName()];saveLayout();if(rows.length)render();closeDlg()}}
+  dialog(`<h3>Columns</h3><div class="small">Tick the columns you want to see and use the arrows to move them. You can also drag a column heading to move it. Your choice is remembered for this kind of list.</div><div id="collist" style="max-height:340px;overflow:auto;margin-top:8px"></div><div class="btns"><button id="colwid" title="Go back to automatic column widths">Reset widths</button><button id="colreset">Show all, original order</button><button class="primary" onclick="closeDlg()">Done</button></div>`);
+  draw();$('#colwid').onclick=()=>{UW={};saveUW();layoutCols()};$('#colreset').onclick=()=>{delete LAYOUT[viewName()];saveLayout();if(rows.length)render();closeDlg()}}
 $('#colbtn').onclick=()=>{if(!rows.length)return alertBox('Run a search first, then choose its columns.');columnsDialog()};
 const SPDK=new Set(['sp','avg_sp','top_sp','avg_speed','top_speed','last_speed']);   // speed figures are drawn bold
 function ageSel(){const a=[...document.querySelectorAll('#agefil input:checked')].map(x=>Number(x.dataset.age));return a.length?new Set(a):null}
@@ -1181,7 +1247,7 @@ function render(){
   fitCols();
   let pos=FIRST;
   const draw=n=>{if(token!==renderToken||pos>=view.length)return false;
-    tb.insertAdjacentHTML('beforeend',view.slice(pos,pos+n).map((r,j)=>rowHtml(r,pos+j)).join(''));pos+=n;return true};
+    const from=pos;tb.insertAdjacentHTML('beforeend',view.slice(pos,pos+n).map((r,j)=>rowHtml(r,pos+j)).join(''));pos+=n;growCheck(from);return true};
   const need=()=>sc.scrollTop+sc.clientHeight*3>sc.scrollHeight-300;
   const more=()=>{if(draw(BATCH)&&need())setTimeout(more,0)};
   window.__rowsMore=()=>{if(token===renderToken&&pos<view.length&&need())more()};
