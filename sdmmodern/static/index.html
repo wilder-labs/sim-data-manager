@@ -766,6 +766,11 @@ html[data-theme="paper"] dialog a:not(.viewerlink){color:var(--accent);text-deco
     <button data-act="tracks">Track Codes…</button>
     <button data-act="compact">Shrink Database</button>
     <button data-act="simreset">Show the sim-site login reminder again</button><hr><button data-act="dbinfo">Database Summary…</button></div></div>
+  <div class="menu"><button>Top 25 Speeds</button><div class="drop">
+    <button data-act="t25week">This Week's Lists</button>
+    <button data-act="t25season">The Season</button>
+    <hr><button data-act="t25import">Add a Top 25 Speeds File…</button>
+    <button data-act="t25about">About These Lists</button></div></div>
   <div class="menu"><button>Help</button><div class="drop"><button data-act="guide">Open the Guide (in your browser)</button><button data-act="help">How to Use This</button><button data-act="mail">Message the developer</button><button data-act="update">Check for Updates</button><button data-act="about">About Sim Data Manager</button><button data-act="exit">Exit Sim Data Manager</button></div></div>
   <a id="datachip" class="datachip" href="http://denovo.eu5.net/SSSarch.php" target="_blank" rel="noopener" style="margin-left:auto" title="The dates your race data covers. Click to open the denovo archive in your browser and check whether a newer pack is out.">Race data</a>
   <button type="button" id="panelbtn" title="Show or hide the search box to make room for results">Panel</button>
@@ -795,7 +800,8 @@ html[data-theme="paper"] dialog a:not(.viewerlink){color:var(--accent);text-deco
       <button type="button" id="bestspd" title="Every horse that ran in the newest 30 racing days, ranked by its fastest race in that period. The date boxes are not used.">&#9889; Best Speeds Last 30 Days</button>
       <button type="button" id="stakes" title="Every stakes race (stakes and graded) this calendar year, counted from January 1 to the newest race in the database. One row per race, with the winner.">&#127942; Stakes Races This Year</button>
       <button type="button" id="debut" title="Horses whose very first race came this calendar year, one row each (the debut), fastest speed figure first. The sidebar covers all of them.">&#127775; First Time Starters This Year</button>
-      <button type="button" id="ownrank" title="Every trainer with at least 25 runners this calendar year, ranked by wins. Click any column heading to re-sort. Computer-run stables (names starting with *) are left out.">&#127941; Trainer Rankings This Year</button></div>
+      <button type="button" id="ownrank" title="Every trainer with at least 25 runners this calendar year, ranked by wins. Click any column heading to re-sort. Computer-run stables (names starting with *) are left out.">&#127941; Trainer Rankings This Year</button>
+      <button type="button" id="t25btn" title="zapspride's weekly Top 25 Speeds lists from the Black Type Bugler: this week's Overall, 2-year-old and 3-year-old lists, and the whole season. Read from files on this computer.">&#128200; Top 25 Speeds of the Week</button></div>
   </fieldset>
 </form>
 
@@ -1354,6 +1360,19 @@ function alertBox(m){dialog(`<h3>Sim Data Manager</h3><div class="msg err">${esc
 function toast(m){dialog(`<h3>Sim Data Manager</h3><div class="msg ok">${esc(m)}</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)}
 async function wkDate(w){try{return (await api('/api/date?week='+w)).date}catch(e){return 'week '+w}}
 const actions={
+  t25week(){openT25('week')},
+  t25season(){openT25('season')},
+  t25import(){
+   dialog(`<h3>Add a Top 25 Speeds File</h3><div class="small">Choose a Top 25 Speeds file (<b>.json</b>), for example <b>btb-top25-2026.json</b>. Weeks you already have are replaced with the copy in the file. Nothing is downloaded and the Bugler is not contacted.</div>
+    <div class="row"><input type="file" id="t25file" accept=".json,application/json"></div><div id="t25msg"></div><div class="btns"><button onclick="closeDlg()">Close</button><button class="primary" id="t25go" disabled>Add</button></div>`);
+   let file=null;
+   $('#t25file').onchange=e=>{file=e.target.files[0];$('#t25go').disabled=!file;$('#t25msg').innerHTML=''};
+   $('#t25go').onclick=async()=>{$('#t25go').disabled=true;$('#t25msg').innerHTML='<div class="msg">Reading…</div>';
+     try{const r=await api('/api/top25/import',{method:'POST',headers:{'X-SDM':'1'},body:await file.text()});
+       $('#t25msg').innerHTML=`<div class="msg ok">Added ${r.weeks} week${r.weeks==1?'':'s'} (${r.new} new, ${r.replaced} replaced), weeks ending ${esc(r.first)} to ${esc(r.last)}.</div>`;
+       const f=$('#t25f');if(f&&!$('#t25').hidden)f.contentWindow.location.reload()}
+     catch(err){$('#t25msg').innerHTML=`<div class="msg err">${esc(err.message)}</div>`;$('#t25go').disabled=false}}},
+  t25about(){dialog(`<h3>Top 25 Speeds of the Week</h3><div class="small">These are zapspride's weekly lists from the Black Type Bugler (btb.ehorseracing.com): the 25 fastest speed figures of the week overall, for 2-year-olds and for 3-year-olds, with his Top 5 of the year. They are shown here with his permission and the figures are his.<br><br>Sim Data Manager reads them from files on this computer and never contacts the Bugler. The 2026 lists come with the program; add newer weeks with <b>Top 25 Speeds &rarr; Add a Top 25 Speeds File</b>. Weeks you add are saved in <b>top25-speeds.json</b> next to your database.</div><div class="btns"><button class="primary" onclick="closeDlg()">Close</button></div>`)},
   simreset(){try{localStorage.removeItem('sdm_simok2')}catch(e){}toast('The reminder will show the next time you click View on sim site.')},
   guide(){window.open('https://wilderlabs.studio/sim-tools/sim-data-manager-guide/','_blank','noopener')},
   mail(){window.location.href='mailto:jefwilder@wilderlabs.studio?subject='+encodeURIComponent('Sim Data Manager')},
@@ -1696,6 +1715,14 @@ $('#coffeebtn').onclick=()=>{dialog(`<div class="coffee" style="max-width:460px"
 <div class="small">For sim credit, use the sim's usual credit transfer. Nothing is sent from this program. The Ko-fi link opens in your browser only when you click it.</div>
 <div class="btns"><button type="button" class="primary" onclick="closeDlg()">Close</button></div></div>`);
  $('#cfcopy').onclick=async()=>{const t='unreal';try{await navigator.clipboard.writeText(t);$('#cfcopy').textContent='Copied'}catch(e){const r=document.createRange();r.selectNodeContents($('#cfacct'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('#cfcopy').textContent='Press Ctrl+C'}}};
+</script>
+<div id="t25" hidden><iframe id="t25f" title="Top 25 Speeds"></iframe></div>
+<style>#t25{position:fixed;inset:0;z-index:900;background:var(--bg)}#t25 iframe{display:block;border:0;width:100%;height:100%}</style>
+<script>
+function openT25(view){const o=document.getElementById('t25'),f=document.getElementById('t25f'),u='/top25#'+(view==='season'?'season':'week');
+  if(f.getAttribute('src')!==u)f.setAttribute('src',u);o.hidden=false;setTimeout(()=>{try{f.focus()}catch(e){}},50)}
+window.closeT25=function(){document.getElementById('t25').hidden=true;try{document.getElementById('t25btn').focus()}catch(e){}};
+document.getElementById('t25btn').addEventListener('click',()=>openT25('week'));
 </script>
 </body>
 </html>

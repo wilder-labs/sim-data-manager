@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Top 25 Speeds · Sim Data Manager</title>
+<style>
+/* Takes its colors and fonts from the Sim Data Manager window that opens it, so every theme carries over.
+   The values below are only used if the page is opened on its own. */
+:root{--bg:#f5f6fa;--panel:#ffffff;--ink:#1a2132;--mute:#6a7388;--line:#e7eaf1;--accent:#4a63e7;--accent-ink:#fff;--hi:#eef1fd;
+  --hover:#f6f7fc;--elev:#f3f5fa;--good:#17845a;--bad:#c4372b;--r:14px;--shadow:0 1px 2px rgba(20,28,50,.05),0 8px 24px rgba(20,28,50,.06);
+  --sans:"Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif;--disp:var(--sans);color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1117;--panel:#161a22;--ink:#e7eaf2;--mute:#8a93a8;--line:#222836;--accent:#8aa2ff;--accent-ink:#0c1020;--hi:#1e2638;--hover:#1a202b;--elev:#1c212c;--good:#5fd9a4;--bad:#ff8f80}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.ttl b{display:block;font:700 18px/1.1 var(--disp);letter-spacing:.01em}
+.ttl span{font-size:12.5px;color:var(--mute)}
+.views{display:flex;gap:4px;background:var(--elev);padding:3px;border-radius:10px}
+.views button{border:0;background:none;padding:7px 16px;border-radius:8px;font-weight:600;color:var(--mute)}
+.views button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.grow{flex:1 1 auto}
+.pick{display:flex;align-items:center;gap:6px}
+.pick select{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;min-height:34px}
+.ib{border:1px solid var(--line);background:var(--panel);border-radius:8px;min-width:34px;min-height:34px;padding:4px 10px;font-weight:600}
+.ib:hover:not(:disabled){background:var(--hover)}
+.ib:disabled{opacity:.35;cursor:default}
+.close{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 14px;min-height:34px;font-weight:600}
+.close:hover{background:var(--hover)}
+main{padding:16px 18px 30px}
+
+/* shared blocks */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);min-width:0}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:hidden}
+.facts>div{padding:12px 16px;border-right:1px solid var(--line);min-width:0}
+.facts>div:last-child{border-right:0}
+.facts dt{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.facts dd{margin:4px 0 0;font:700 18px/1.15 var(--disp)}
+.facts dd span{color:var(--accent);margin-left:6px}
+.facts dd small{display:block;font:500 12.5px/1.35 var(--sans);color:var(--mute);margin-top:2px}
+h2.sec{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:22px 2px 10px;font:700 16px/1.2 var(--disp)}
+h2.sec span{font:500 12.5px var(--sans);color:var(--mute)}
+.note{font-size:12.5px;color:var(--mute);margin:6px 2px 0}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:1px 5px;border-radius:4px;background:var(--hi);color:var(--accent);margin-left:5px;vertical-align:1px;white-space:nowrap}
+.tag.new{background:var(--good);color:var(--panel)}
+.empty{max-width:560px;margin:60px auto;text-align:center;color:var(--mute)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:6px}
+
+/* week view: three lists side by side */
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:16px}
+.col{container-type:inline-size;min-width:0}
+.col .card{overflow:hidden}
+.ch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:11px 14px 9px;border-bottom:1px solid var(--line)}
+.ch h3{margin:0;font:700 17px/1 var(--disp)}
+.ch span{font-size:12px;color:var(--mute)}
+.inner{display:grid;grid-template-columns:minmax(0,1fr)}
+@container (min-width:720px){.inner{grid-template-columns:minmax(0,1fr) 260px}.inner .yb{border-top:0;border-left:1px solid var(--line)}}
+table{width:100%;border-collapse:collapse}
+.lst th{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);text-align:left;padding:8px 8px 6px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+.lst td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.lst tr:last-child td{border-bottom:0}
+.lst tbody tr:hover td{background:var(--hover)}
+.lst .r{text-align:right}
+.lst .rk{width:2.2em;text-align:right;color:var(--mute);font-weight:600}
+.lst .h b{display:block;font-weight:700;letter-spacing:.01em}
+.lst .h small{display:block;color:var(--mute);font-size:12px}
+.lst .t{width:3.4em;color:var(--mute);font-size:12.5px}
+.lst .s{width:4.6em;text-align:right;font:700 16px/1 var(--disp)}
+.lst tr.one .s{color:var(--accent)}
+.lst tr.yrb td{background:var(--hi)}
+.yb{border-top:1px solid var(--line);background:var(--elev)}
+.yb h4{margin:0;padding:9px 12px 7px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);display:flex;justify-content:space-between}
+.yb h4 span{color:var(--good)}
+.yb td{padding:5px 12px;border-top:1px solid var(--line)}
+.yb .h b{display:block;font-weight:700;font-size:13px}
+.yb .h small{display:block;color:var(--mute);font-size:11.5px}
+.yb .s{text-align:right;font:700 15px/1 var(--disp)}
+.key{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:12px;font-size:12.5px;color:var(--mute);align-items:center}
+.key i{display:inline-block;width:14px;height:12px;background:var(--hi);border:1px solid var(--line);vertical-align:-1px;margin-right:6px}
+
+/* season view */
+.chart{padding:12px 12px 6px;position:relative}
+.chart svg{display:block;width:100%;height:auto}
+.chart text{font:600 11.5px var(--sans);fill:var(--mute)}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .band{fill:var(--accent);fill-opacity:.12}
+.chart .top{fill:none;stroke:var(--accent);stroke-width:2.5}
+.chart .cut{fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:5 4}
+.chart .dot{fill:var(--accent)}
+.chart .hit{fill:transparent;cursor:pointer}
+.chart .cur{stroke:var(--ink);stroke-width:1;stroke-dasharray:2 3}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:4px 6px 2px;font-size:12.5px;color:var(--mute)}
+.legend i{display:inline-block;width:20px;height:0;border-top:2.5px solid var(--accent);vertical-align:4px;margin-right:6px}
+.legend i.c{border-top:1.5px dashed var(--mute)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--panel);padding:8px 10px;border-radius:8px;font-size:12.5px;line-height:1.4;min-width:180px;max-width:250px;z-index:3}
+.tip b{display:block;font-size:14px}
+.ltabs{display:flex;gap:6px;margin:16px 0 0}
+.ltabs button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 16px;text-align:left;min-width:150px}
+.ltabs button b{display:block;font:700 15px/1.1 var(--disp)}
+.ltabs button small{color:var(--mute);font-size:12px}
+.ltabs button[aria-selected="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.grid3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.grid3 .rep{grid-column:1/-1}
+.rec td{padding:6px 10px;border-top:1px solid var(--line)}
+.rec .rk{width:2em;text-align:right;color:var(--mute);font-weight:600}
+.rec .h b{display:block;font-weight:700}
+.rec .h small{display:block;color:var(--mute);font-size:12px}
+.rec .m{color:var(--mute);font-size:12.5px;white-space:nowrap}
+.rec .s{text-align:right;font:700 16px/1 var(--disp)}
+.rec tr.one .s{color:var(--accent)}
+.rows .row{display:grid;grid-template-columns:minmax(0,1.3fr) 54px 64px minmax(0,2.2fr);gap:4px 14px;align-items:center;padding:8px 12px;border:0;border-top:1px solid var(--line);background:none;width:100%;text-align:left}
+.rows .row:hover{background:var(--hover)}
+.rows .hd{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);cursor:default}
+.rows .hd:hover{background:none}
+.rows .row b{display:block;font-weight:700}
+.rows .row small{display:block;color:var(--mute);font-size:12px}
+.rows .cnt{font:700 18px/1 var(--disp);text-align:right}
+.rows .best{font:700 15px/1 var(--disp);text-align:right}
+.strip{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:2px;height:16px}
+.strip i{background:var(--elev);border-radius:2px}
+.strip i.l1{background:color-mix(in srgb,var(--accent) 25%,var(--panel))}
+.strip i.l2{background:color-mix(in srgb,var(--accent) 50%,var(--panel))}
+.strip i.l3{background:color-mix(in srgb,var(--accent) 75%,var(--panel))}
+.strip i.l4{background:var(--accent)}
+.axis{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:2px;font-size:10px;color:var(--mute)}
+.detail{background:var(--elev);padding:6px 12px 8px}
+.detail table{max-width:640px}
+.detail td{padding:4px 8px;border-top:1px solid var(--line)}
+.more{margin:10px 12px 12px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 14px;font-weight:600}
+.find{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px}
+.find input{flex:1 1 260px;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:9px 12px;font-size:15px}
+.find span{color:var(--mute);font-size:12.5px}
+.foot{margin-top:18px;font-size:12.5px;color:var(--mute);max-width:110ch}
+
+@media (max-width:1100px){.cols{grid-template-columns:minmax(0,1fr)}.facts{grid-template-columns:1fr 1fr}.facts>div:nth-child(2){border-right:0}.facts>div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .grid3{grid-template-columns:minmax(0,1fr)}.rows .row{grid-template-columns:minmax(0,1fr) 40px 56px}.rows .row .strip{grid-column:1/-1}.rows .hd .sh{display:none}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="ttl"><b>Top 25 Speeds</b><span>Weekly lists compiled by zapspride, Black Type Bugler</span></div>
+  <div class="views" role="tablist" aria-label="View">
+    <button type="button" role="tab" data-v="week" aria-selected="true">Week</button>
+    <button type="button" role="tab" data-v="season" aria-selected="false">Season</button>
+  </div>
+  <span class="grow"></span>
+  <div class="pick" id="pick"></div>
+  <button type="button" class="close" id="close" title="Back to Sim Data Manager (Esc)">Close</button>
+</header>
+<main id="week"></main>
+<main id="season" hidden></main>
+
+<script>
+const LISTS = [['overall','Overall','All ages'],['two','2YO','Two-year-olds'],['three','3YO','Three-year-olds']];
+const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const BTB = 'https://btb.ehorseracing.com/?p=';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const f2 = n => n.toFixed(2);
+const $ = s => document.querySelector(s);
+const wkS = w => { const [,m,d] = w.split('-').map(Number); return `${MON[m-1].slice(0,3)} ${d}`; };
+const wkL = w => { const [y,m,d] = w.split('-').map(Number); return `${MON[m-1]} ${d}, ${y}`; };
+const parse = a => (a||[]).map((l,i) => { const [stable,horse,fig,type] = l.split('|'); return {rank:i+1, stable, horse, fig:parseFloat(fig), type}; });
+const key = r => r.horse + '|' + r.fig;
+const post = id => id ? `<a href="${BTB}${esc(id)}" target="_blank" rel="noopener">` : '<a>';
+
+/* ---- colors and fonts from the main window ---- */
+const VARS = ['--bg','--panel','--ink','--mute','--line','--accent','--accent-ink','--hi','--hover','--elev','--good','--bad','--r','--shadow','--disp','--sans'];
+function syncTheme(){
+  try{
+    if(window.parent === window) return;
+    const pr = parent.document.documentElement, cs = parent.getComputedStyle(pr), me = document.documentElement;
+    VARS.forEach(v => { const x = cs.getPropertyValue(v).trim(); if(x) me.style.setProperty(v, x); });
+    if(!cs.getPropertyValue('--sans').trim()) me.style.setProperty('--sans', parent.getComputedStyle(parent.document.body).fontFamily);
+    if(!cs.getPropertyValue('--disp').trim()) me.style.setProperty('--disp', 'var(--sans)');
+    me.style.colorScheme = cs.colorScheme || 'normal';
+  }catch(e){}
+}
+syncTheme();
+try{ if(window.parent !== window) new parent.MutationObserver(syncTheme).observe(parent.document.documentElement, {attributes:true}); }catch(e){}
+try{ if(window.parent !== window) parent.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncTheme); }catch(e){}
+
+function closeMe(){ try{ if(window.parent !== window && parent.closeT25){ parent.closeT25(); return; } }catch(e){} location.href = '/'; }
+$('#close').onclick = closeMe;
+addEventListener('keydown', e => { if(e.key === 'Escape') closeMe(); });
+
+/* ---- data ---- */
+let WEEKS = [], W = {}, SEAS = {};
+let state = {view:'week', week:null, wlist:'overall', slist:'overall', open:null, showAll:false};
+try{ const s = JSON.parse(localStorage.getItem('sdm_top25') || '{}'); Object.assign(state, {view:s.view==='season'?'season':'week', slist:s.slist||'overall'}); }catch(e){}
+if(/season/.test(location.hash)) state.view = 'season';
+function save(){ try{ localStorage.setItem('sdm_top25', JSON.stringify({view:state.view, slist:state.slist})); }catch(e){} }
+
+async function load(){
+  let d;
+  try{ const r = await fetch('/api/top25'); d = await r.json(); if(!r.ok) throw new Error(d.error || 'Could not load the lists.'); }
+  catch(e){ $('#week').innerHTML = `<div class="empty"><b>Could not load the Top 25 Speeds lists.</b>${esc(e.message)}</div>`; return; }
+  W = {};
+  for(const [k,w] of Object.entries(d.weeks || {})){ const o = {post:w.post, posted:w.posted}; LISTS.forEach(([l]) => { o[l] = parse(w[l]); o[l+'Year'] = parse(w[l+'Year']); }); W[k] = o; }
+  WEEKS = Object.keys(W).sort();
+  state.week = WEEKS[WEEKS.length-1] || null;
+  for(const [l] of LISTS){
+    const entries = []; WEEKS.forEach((w,wi) => W[w][l].forEach(r => entries.push({...r, week:w, wi, post:W[w].post})));
+    SEAS[l] = {entries, byWeek: WEEKS.map(w => ({week:w, top:W[w][l][0], cut:W[w][l][W[w][l].length-1], post:W[w].post})).filter(b => b.top)};
+  }
+  render();
+}
+
+function render(){
+  document.querySelectorAll('.views button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === state.view)));
+  $('#week').hidden = state.view !== 'week'; $('#season').hidden = state.view !== 'season';
+  if(!WEEKS.length){
+    $('#pick').innerHTML = '';
+    $('#' + state.view).innerHTML = `<div class="empty"><b>No Top 25 Speeds lists yet.</b>Choose Top 25 Speeds &rarr; Add a Top 25 Speeds File in the main window.</div>`;
+    return;
+  }
+  if(state.view === 'week') renderWeek(); else renderSeason();
+  save();
+}
+
+/* ---- week ---- */
+function renderWeek(){
+  const i = WEEKS.indexOf(state.week), w = W[state.week], P = W[WEEKS[i-1]];
+  $('#pick').innerHTML = `<button type="button" class="ib" data-w="${WEEKS[i-1]||''}" ${i<=0?'disabled':''} aria-label="Earlier week">&#8249;</button>
+    <select id="wsel" aria-label="Week ending">${[...WEEKS].reverse().map(x => `<option value="${x}"${x===state.week?' selected':''}>Week ending ${wkS(x)}</option>`).join('')}</select>
+    <button type="button" class="ib" data-w="${WEEKS[i+1]||''}" ${i>=WEEKS.length-1?'disabled':''} aria-label="Later week">&#8250;</button>`;
+  const newYB = {}; LISTS.forEach(([l]) => { const prev = P ? new Set(P[l+'Year'].map(key)) : null; newYB[l] = prev ? w[l+'Year'].filter(r => !prev.has(key(r))) : []; });
+  const totalNew = Object.values(newYB).reduce((a,b) => a + b.length, 0);
+  const fastest = l => w[l][0];
+  const facts = LISTS.map(([l,n]) => fastest(l) ? `<div><dt>Fastest · ${n}</dt><dd>${esc(fastest(l).horse)}<span class="num">${f2(fastest(l).fig)}</span><small>${esc(fastest(l).stable)} · ${esc(fastest(l).type)}</small></dd></div>` : `<div><dt>Fastest · ${n}</dt><dd>—</dd></div>`).join('') +
+    `<div><dt>Top 5 of the year</dt><dd>${P ? (totalNew ? totalNew + ' new this week' : 'No changes') : '—'}<small>${P ? (totalNew ? LISTS.filter(([l]) => newYB[l].length).map(([l,n]) => n + ': ' + newYB[l].map(r => esc(r.horse)).join(', ')).join(' · ') : 'Same five on every list') : 'First week on file'}</small></dd></div>`;
+  const cols = LISTS.map(([l,n,sub]) => {
+    const rows = w[l], yb = new Set(w[l+'Year'].map(key)), prevYB = P ? new Set(P[l+'Year'].map(key)) : null;
+    if(!rows.length) return `<section class="col"><div class="card"><div class="ch"><h3>${n}</h3><span>${sub}</span></div><p class="note" style="padding:12px">No list this week.</p></div></section>`;
+    const xr = r => LISTS.filter(x => x[0] !== l).map(x => [x[1], w[x[0]].find(y => y.horse === r.horse)]).filter(x => x[1]);
+    const body = rows.map(r => `<tr class="${r.rank===1?'one ':''}${yb.has(key(r))?'yrb':''}"><td class="rk num">${r.rank}</td><td class="h"><b>${esc(r.horse)}${xr(r).map(([ln,x]) => `<span class="tag">${ln} #${x.rank}</span>`).join('')}</b><small>${esc(r.stable)}</small></td><td class="t">${esc(r.type)}</td><td class="s num">${f2(r.fig)}</td></tr>`).join('');
+    const year = w[l+'Year'].map(r => { const isNew = prevYB && !prevYB.has(key(r)); return `<tr><td class="h"><b>${r.rank}. ${esc(r.horse)}${isNew?'<span class="tag new">New</span>':''}</b><small>${esc(r.stable)} · ${esc(r.type)}</small></td><td class="s num">${f2(r.fig)}</td></tr>`; }).join('');
+    return `<section class="col"><div class="card"><div class="ch"><h3>${n}</h3><span class="num">#1 ${f2(rows[0].fig)} · cut ${f2(rows[rows.length-1].fig)} · ${rows.length} horses</span></div>
+      <div class="inner"><table class="lst"><thead><tr><th class="r">#</th><th>Horse · Stable</th><th>Type</th><th class="r">Speed</th></tr></thead><tbody>${body}</tbody></table>
+      <div class="yb"><h4>Top 5 of the year${newYB[l].length?`<span>${newYB[l].length} new</span>`:''}</h4><table><tbody>${year}</tbody></table></div></div></div></section>`;
+  }).join('');
+  $('#week').innerHTML = `<h2 class="sec" style="margin-top:4px">Week ending ${wkL(state.week)}<span>Posted ${esc(w.posted)} · ${post(w.post)}Original post on the Bugler &#8599;</a></span></h2>
+    <dl class="card facts">${facts}</dl><div class="cols">${cols}</div>
+    <div class="key"><span><i></i>Shaded rows are in the Top 5 of the year</span><span><span class="tag" style="margin-left:0">3YO #1</span> also on another list this week</span><span>Race types as posted</span></div>`;
+}
+
+/* ---- season ---- */
+function heat(f, lo, hi){ const t = (f-lo)/(hi-lo||1); return t > .8 ? 4 : t > .55 ? 3 : t > .3 ? 2 : 1; }
+function renderSeason(){
+  $('#pick').innerHTML = '';
+  const l = state.slist, D = SEAS[l], E = D.entries, N = WEEKS.length;
+  if(!E.length){ $('#season').innerHTML = '<div class="empty"><b>No entries on this list yet.</b></div>'; return; }
+  const horses = new Map(), stables = new Map();
+  E.forEach(e => { (horses.get(e.horse) || horses.set(e.horse, []).get(e.horse)).push(e); (stables.get(e.stable) || stables.set(e.stable, []).get(e.stable)).push(e); });
+  const best = E.reduce((a,b) => b.fig > a.fig ? b : a);
+  const most = [...horses.values()].sort((a,b) => b.length - a.length || Math.max(...b.map(x=>x.fig)) - Math.max(...a.map(x=>x.fig)))[0];
+  const bw = D.byWeek, k = Math.min(4, Math.max(1, Math.floor((bw.length-1)/2)));
+  const early = bw.slice(1, 1+k).reduce((a,b) => a + b.top.fig, 0)/k, late = bw.slice(-k).reduce((a,b) => a + b.top.fig, 0)/k;
+  const year = WEEKS[0].slice(0,4);
+  const tabs = LISTS.map(([x,n]) => `<button type="button" role="tab" data-l="${x}" aria-selected="${x===l}"><b>${n}</b><small class="num">Season best ${f2(Math.max(...SEAS[x].entries.map(e=>e.fig)))}</small></button>`).join('');
+  const rec = [...E].sort((a,b) => b.fig - a.fig).slice(0,10);
+  const st = [...stables.entries()].map(([s,v]) => ({s, n:v.length, b:v.reduce((a,c) => c.fig > a.fig ? c : a)})).sort((a,b) => b.n - a.n || b.b.fig - a.b.fig).slice(0,10);
+  const lo = Math.min(...E.map(e=>e.fig)), hi = Math.max(...E.map(e=>e.fig));
+  const reps = [...horses.values()].filter(v => v.length >= 3).sort((a,b) => b.length - a.length || Math.max(...b.map(x=>x.fig)) - Math.max(...a.map(x=>x.fig)));
+  const shown = state.showAll ? reps : reps.slice(0, 15);
+  const axis = WEEKS.map((w,i) => { const m = Number(w.split('-')[1]); const p = i ? Number(WEEKS[i-1].split('-')[1]) : 0; return `<span>${m!==p?MON[m-1][0]:''}</span>`; }).join('');
+  $('#season').innerHTML = `
+    <h2 class="sec" style="margin-top:4px">The ${esc(year)} season<span>${N} weeks · week ending ${wkS(WEEKS[0])} to ${wkS(WEEKS[N-1])} · ${E.length.toLocaleString()} listings on this list</span></h2>
+    <div class="ltabs" role="tablist" aria-label="List">${tabs}</div>
+    <dl class="card facts" style="margin-top:12px">
+      <div><dt>Fastest of the season</dt><dd>${esc(best.horse)}<small class="num">${f2(best.fig)} · week ending ${wkS(best.week)} · ${esc(best.stable)}</small></dd></div>
+      <div><dt>Different horses</dt><dd class="num">${horses.size.toLocaleString()}<small>${[...horses.values()].filter(v=>v.length===1).length.toLocaleString()} listed only once</small></dd></div>
+      <div><dt>Most weeks on the list</dt><dd>${esc(most[0].horse)}<small>${most.length} of ${N} weeks · ${esc(most[0].stable)}</small></dd></div>
+      <div><dt>Weekly #1, early vs late</dt><dd class="num">${f2(early)} &rarr; ${f2(late)}<small>Average of ${k} weeks after the first vs the last ${k}</small></dd></div>
+    </dl>
+    <h2 class="sec">Week by week<span>The #1 and #25 figure each week. Point at a week for details.</span></h2>
+    <div class="card chart" id="chart"></div>
+    <div class="grid3">
+      <section><h2 class="sec">Season records<span>Top 10 weekly figures</span></h2><div class="card"><table class="rec"><tbody>${rec.map((e,i) => `<tr class="${i?'':'one'}"><td class="rk num">${i+1}</td><td class="h"><b>${esc(e.horse)}</b><small>${esc(e.stable)} · ${esc(e.type)}</small></td><td class="m">${post(e.post)}${wkS(e.week)}</a> · #${e.rank}</td><td class="s num">${f2(e.fig)}</td></tr>`).join('')}</tbody></table></div></section>
+      <section><h2 class="sec">Stables<span>Most horses on the list</span></h2><div class="card"><table class="rec"><tbody>${st.map((x,i) => `<tr><td class="rk num">${i+1}</td><td class="h"><b>${esc(x.s)}</b><small>Best: ${esc(x.b.horse)}</small></td><td class="m num">${x.n} time${x.n===1?'':'s'}</td><td class="s num">${f2(x.b.fig)}</td></tr>`).join('')}</tbody></table></div></section>
+      <section class="rep"><h2 class="sec">Repeat performers<span>${reps.length} horses listed 3 or more weeks. Darker = faster. Click a horse for its weeks.</span></h2>
+        <div class="card rows" id="rows"><div class="row hd" style="--n:${N}"><span>Horse · Stable</span><span style="text-align:right">Weeks</span><span style="text-align:right">Best</span><span class="sh"><span class="axis" style="--n:${N}">${axis}</span></span></div>
+        ${shown.map(v => { const byW = new Map(v.map(e => [e.wi, e])); const b = v.reduce((a,c) => c.fig > a.fig ? c : a); const open = state.open === v[0].horse;
+          return `<button type="button" class="row" data-h="${esc(v[0].horse)}" aria-expanded="${open}"><span><b>${esc(v[0].horse)}</b><small>${esc([...new Set(v.map(e=>e.stable))].join(', '))}</small></span><span class="cnt num">${v.length}</span><span class="best num">${f2(b.fig)}</span><span class="strip" style="--n:${N}">${WEEKS.map((w,i) => { const e = byW.get(i); return `<i class="${e?'l'+heat(e.fig,lo,hi):''}" title="${e?esc(wkS(w)+': #'+e.rank+' · '+f2(e.fig)):''}"></i>`; }).join('')}</span></button>` +
+            (open ? `<div class="detail"><table><tbody>${v.map(e => `<tr><td>${wkS(e.week)}</td><td class="num">#${e.rank}</td><td>${esc(e.type)}</td><td>${esc(e.stable)}</td><td class="num" style="text-align:right;font-weight:700">${f2(e.fig)}</td></tr>`).join('')}</tbody></table></div>` : ''); }).join('')}
+        ${reps.length > 15 ? `<button type="button" class="more" id="showall">${state.showAll ? 'Show the top 15' : 'Show all ' + reps.length}</button>` : ''}</div></section>
+    </div>
+    <h2 class="sec">Find a horse or stable<span>Every listing this season on this list</span></h2>
+    <div class="card"><div class="find"><input id="q" type="search" placeholder="Type part of a horse or stable name" autocomplete="off" aria-label="Find a horse or stable"><span id="qn">Type at least 2 letters</span></div><div id="res"></div></div>
+    <p class="foot">Figures and lists are zapspride's, from his Top 25 Speeds of the Week posts on the Black Type Bugler, used with his permission. Nothing here contacts the Bugler; the lists are read from files on this computer.${WEEKS.some(x => /\(/.test(W[x].posted)) ? ' Date fixes: ' + WEEKS.filter(x => /\(/.test(W[x].posted)).map(x => 'week ending ' + wkS(x) + ' (' + esc(W[x].posted.match(/\((.*)\)/)[1]) + ')').join('; ') + '.' : ''}</p>`;
+  drawChart(D);
+  const q = $('#q'); q.value = state.q || ''; q.oninput = () => { state.q = q.value; find(); }; find();
+}
+
+function drawChart(D){
+  const el = $('#chart'), N = D.byWeek.length;
+  const Wd = Math.max(300, Math.round(el.clientWidth - 26)), H = Math.round(Math.min(420, Math.max(240, Wd * .2))), L = 36, R = 12, T = 22, B = 26;
+  const tops = D.byWeek.map(b => b.top.fig), cuts = D.byWeek.map(b => b.cut.fig);
+  const y0 = Math.floor(Math.min(...cuts)) - 1, y1 = Math.ceil(Math.max(...tops)) + 1;
+  const x = i => L + i * (Wd - L - R) / Math.max(1, N - 1), y = v => T + (y1 - v) * (H - T - B) / (y1 - y0);
+  const step = (y1 - y0) > 24 ? 5 : 2;
+  let g = '';
+  for(let v = Math.ceil(y0/step)*step; v <= y1; v += step) g += `<line class="grid" x1="${L}" x2="${Wd-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  D.byWeek.forEach((b,i) => { const m = Number(b.week.split('-')[1]); const p = i ? Number(D.byWeek[i-1].week.split('-')[1]) : 0; if(m !== p) g += `<text x="${x(i)}" y="${H-7}" text-anchor="${i?'middle':'start'}">${Wd < 560 ? MON[m-1][0] : MON[m-1].slice(0,3)}</text>`; });
+  const pts = a => a.map((v,i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const band = pts(tops) + ' ' + cuts.map((v,i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).reverse().join(' ');
+  const bi = tops.indexOf(Math.max(...tops)), cw = (Wd - L - R) / Math.max(1, N - 1);
+  el.innerHTML = `<svg viewBox="0 0 ${Wd} ${H}" role="img" aria-label="Weekly number one and number 25 figures">${g}<polygon class="band" points="${band}"/><polyline class="cut" points="${pts(cuts)}"/><polyline class="top" points="${pts(tops)}"/>
+    <circle class="dot" cx="${x(bi)}" cy="${y(tops[bi])}" r="5"/><text x="${x(bi)}" y="${y(tops[bi])-10}" text-anchor="${x(bi) > Wd-180 ? 'end' : x(bi) < L+120 ? 'start' : 'middle'}" style="fill:var(--ink);font-weight:700">${esc(D.byWeek[bi].top.horse)} ${f2(tops[bi])}</text>
+    <line class="cur" id="cur" x1="0" x2="0" y1="${T}" y2="${H-B}" visibility="hidden"/>${D.byWeek.map((b,i) => `<rect class="hit" data-i="${i}" x="${x(i)-cw/2}" y="${T}" width="${cw}" height="${H-T-B}"/>`).join('')}</svg>
+    <div class="legend"><span><i></i>Weekly #1</span><span><i class="c"></i>#25, the cut line</span>${state.slist !== 'overall' ? '<span>The first week of January can sit far above the weeks after it on the age lists; ask zapspride if it still uses last year\'s ages.</span>' : ''}</div><div class="tip" id="tip" hidden></div>`;
+  const tip = $('#tip'), cur = $('#cur'), svg = el.querySelector('svg');
+  const show = i => { const b = D.byWeek[i]; cur.setAttribute('x1', x(i)); cur.setAttribute('x2', x(i)); cur.setAttribute('visibility', 'visible');
+    tip.innerHTML = `<span>Week ending ${wkS(b.week)}</span><b>${esc(b.top.horse)} ${f2(b.top.fig)}</b><span>${esc(b.top.stable)} · ${esc(b.top.type)}</span><br><span>#25: ${f2(b.cut.fig)}</span>`;
+    tip.hidden = false; const r = svg.getBoundingClientRect(), px = x(i) / Wd * r.width; tip.style.left = Math.min(Math.max(px + 14, 4), r.width - tip.offsetWidth) + 'px'; tip.style.top = '16px'; };
+  svg.addEventListener('pointermove', e => { const t = e.target.closest('.hit'); if(t) show(+t.dataset.i); });
+  svg.addEventListener('pointerdown', e => { const t = e.target.closest('.hit'); if(t) show(+t.dataset.i); });
+  svg.addEventListener('pointerleave', () => { tip.hidden = true; cur.setAttribute('visibility', 'hidden'); });
+}
+
+function find(){
+  const q = ($('#q')?.value || '').trim().toLowerCase(), out = $('#res'), n = $('#qn');
+  if(!out) return;
+  if(q.length < 2){ out.innerHTML = ''; n.textContent = 'Type at least 2 letters'; return; }
+  const hits = SEAS[state.slist].entries.filter(e => e.horse.toLowerCase().includes(q) || e.stable.toLowerCase().includes(q));
+  n.textContent = `${hits.length} listing${hits.length===1?'':'s'}`;
+  out.innerHTML = hits.length ? `<table class="lst"><thead><tr><th>Week</th><th class="r">#</th><th>Horse · Stable</th><th>Type</th><th class="r">Speed</th></tr></thead><tbody>${hits.slice(0,80).map(e => `<tr><td>${post(e.post)}${wkS(e.week)}</a></td><td class="rk num">${e.rank}</td><td class="h"><b>${esc(e.horse)}</b><small>${esc(e.stable)}</small></td><td class="t">${esc(e.type)}</td><td class="s num">${f2(e.fig)}</td></tr>`).join('')}</tbody></table>${hits.length>80?'<p class="note" style="padding:0 12px 10px">Showing the first 80. Type more to narrow it.</p>':''}` : '<p class="note" style="padding:0 12px 12px">Nothing matches on this list. Try another list.</p>';
+}
+
+/* ---- events ---- */
+document.querySelector('.views').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if(b){ state.view = b.dataset.v; render(); } });
+$('#pick').addEventListener('click', e => { const b = e.target.closest('button[data-w]'); if(b && b.dataset.w){ state.week = b.dataset.w; render(); } });
+$('#pick').addEventListener('change', e => { if(e.target.id === 'wsel'){ state.week = e.target.value; render(); $('#wsel').focus(); } });
+$('#season').addEventListener('click', e => {
+  const t = e.target.closest('.ltabs button[data-l]'); if(t){ state.slist = t.dataset.l; state.open = null; state.showAll = false; render(); return; }
+  if(e.target.closest('#showall')){ state.showAll = !state.showAll; render(); return; }
+  const r = e.target.closest('button.row[data-h]'); if(r){ state.open = state.open === r.dataset.h ? null : r.dataset.h; render(); }
+});
+addEventListener('hashchange', () => { state.view = /season/.test(location.hash) ? 'season' : 'week'; if(WEEKS.length) render(); });
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if(state.view === 'season' && SEAS[state.slist]) drawChart(SEAS[state.slist]); }, 150); });
+load();
+</script>
+</body>
+</html>
