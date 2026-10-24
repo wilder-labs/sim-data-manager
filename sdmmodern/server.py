@@ -11,6 +11,7 @@ from . import shared as SD
 from . import sire as SIRE
 from . import share as SH
 from . import updater as UP
+from . import top25 as T25
 
 STATIC = os.path.join(os.path.dirname(__file__), 'static')
 
@@ -50,6 +51,10 @@ def make_handler(app):
             try:
                 if u.path == '/':
                     return self._send(open(os.path.join(STATIC, 'index.html'), 'rb').read(), ctype='text/html; charset=utf-8')
+                if u.path == '/top25':                 # Top 25 Speeds screen (one fixed file; nothing else is served from disk)
+                    return self._send(open(os.path.join(STATIC, 'top25.html'), 'rb').read(), ctype='text/html; charset=utf-8')
+                if u.path == '/api/top25':             # zapspride's lists from local files only; the Bugler is never contacted
+                    return self._send(T25.load(app.store))
                 if u.path == '/api/ping':
                     app.last_ping, app.seen_ping = time.time(), True
                     return self._send({'ok': True})
@@ -230,6 +235,13 @@ def make_handler(app):
                         app.pull = SD.Pull(app, link, bool(a.get('force'))).start()
                         return self._send({'ok': True})
                     return self._send({'error': 'Unknown request.'}, 404)
+                if u.path == '/api/top25/import':
+                    if self.headers.get('X-SDM') != '1':        # a web page on another site cannot add this header
+                        return self._send({'error': 'Request refused.'}, 403)
+                    try:
+                        return self._send(T25.add(app.store, body))
+                    except ValueError as e:
+                        return self._send({'error': str(e)}, 400)
                 if u.path == '/api/bye':                   # the window is closing (or reloading); a reload pings again within seconds
                     app.bye_at = time.time()
                     return self._send({'ok': True})
