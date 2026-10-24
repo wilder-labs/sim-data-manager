@@ -20,7 +20,8 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
 DEFAULT_URL = 'https://github.com/wilder-labs/sim-data-manager/releases/download/data/SDM-2026.zip'
-GET_OK = {'/', '/m', '/api/info', '/api/tracks', '/api/date', '/api/race-form', '/api/ping', '/healthz'}
+GET_OK = {'/', '/m', '/api/info', '/api/tracks', '/api/date', '/api/race-form', '/api/ping', '/healthz',
+          '/top25', '/api/top25'}           # Top 25 Speeds: read-only lists from files in the program; adding files stays off
 POST_OK = {'/api/search', '/api/owner-changes', '/api/best-speeds', '/api/current-horses', '/api/first-time-starters',
            '/api/graded-races', '/api/stakes-year', '/api/owner-rankings'}
 MAX_BODY = 20000                      # a search request is a few hundred bytes
@@ -30,7 +31,7 @@ CACHE_PATHS = {'/api/owner-rankings', '/api/first-time-starters', '/api/stakes-y
 CACHE_MAX_BYTES = 64 * 1048576        # all kept answers together; the oldest are dropped first
 WARM_PATHS = ['/api/owner-rankings', '/api/first-time-starters', '/api/stakes-year']
 HIDE_JS = r"""<style>#datachip{pointer-events:none}.hosted-bar{background:#243b53;color:#fff;padding:6px 14px;font:13px system-ui,sans-serif;text-align:center}</style>
-<script>(function(){try{if(Math.min(screen.width,screen.height)<700&&location.search.indexOf('desktop')<0){location.replace('/m');return}}catch(e){}try{Object.keys(DEFHID).forEach(function(k){DEFHID[k]=DEFHID[k].filter(function(x){return x==='hid'})})}catch(e){}var hide=['denovo','import','shared','share','remove','compact','update','exit','simreset','archive','tracks'];var ids=['mystfs','claims','sirefind'];
+<script>(function(){try{if(Math.min(screen.width,screen.height)<700&&location.search.indexOf('desktop')<0){location.replace('/m');return}}catch(e){}try{Object.keys(DEFHID).forEach(function(k){DEFHID[k]=DEFHID[k].filter(function(x){return x==='hid'})})}catch(e){}var hide=['t25import','denovo','import','shared','share','remove','compact','update','exit','simreset','archive','tracks'];var ids=['mystfs','claims','sirefind'];
 function go(){var d=document;ids.forEach(function(i){var e=d.getElementById(i);if(e)e.style.display='none'});var em=d.getElementById('empty');if(em&&em.textContent.indexOf('First time')>-1)em.textContent='Search for a horse, a trainer or a race. This demo holds 2026 races only.';hide.forEach(function(a){d.querySelectorAll('[data-act="'+a+'"]').forEach(function(e){e.style.display='none'})});
 d.querySelectorAll('.menu .drop hr + hr').forEach(function(e){e.style.display='none'});
 if(!d.querySelector('.hosted-bar')){var b=d.createElement('div');b.className='hosted-bar';b.textContent=%LABEL%;d.body.insertBefore(b,d.body.firstChild)}}
@@ -233,9 +234,9 @@ def build_handler(app, label, limiter, cache):
 
         def end_headers(self):
             self.send_header('X-Content-Type-Options', 'nosniff')
-            self.send_header('X-Frame-Options', 'DENY')
+            self.send_header('X-Frame-Options', 'SAMEORIGIN')   # the Top 25 Speeds screen opens inside the page; other sites still cannot frame it
             self.send_header('Referrer-Policy', 'no-referrer')
-            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'")
             super().end_headers()
 
         def _deny(self, code, msg):
