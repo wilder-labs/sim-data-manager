@@ -1710,10 +1710,10 @@ setTimeout(async()=>{try{const r=await api('/api/update/status');
 // ---- coffee button
 $('#coffeebtn').onclick=()=>{dialog(`<div class="coffee" style="max-width:460px"><h3>\u2615 Buy me a coffee</h3>
 <p>Sim Data Manager is free. The website version costs a few dollars a month to host, and I run it to practice live deployments for my portfolio.</p>
-<p>If it saves you time, there are two ways to chip in. Neither is required, and the tool works the same either way.</p>
+<p>If it saves you time and you want to chip in, you can send sim credit to the account below. It is never required, and the tool works the same either way.</p>
 <div class="acct"><span>Sim credit<br>to account</span><b id="cfacct">unreal</b><button type="button" id="cfcopy">Copy name</button></div>
-<div class="acct"><span>Or a dollar<br>or two</span><b><a href="https://ko-fi.com/wilderlabsstudio" target="_blank" rel="noopener">Ko-fi \u2197</a></b></div>
-<div class="small">For sim credit, use the sim's usual credit transfer. Nothing is sent from this program. The Ko-fi link opens in your browser only when you click it.</div>
+<p>Thank you, sincerely, to everyone who has donated. It means a lot, and it helps keep the site running.</p>
+<div class="small">Use the sim's usual credit transfer. Nothing is sent from this program.</div>
 <div class="btns"><button type="button" class="primary" onclick="closeDlg()">Close</button></div></div>`);
  $('#cfcopy').onclick=async()=>{const t='unreal';try{await navigator.clipboard.writeText(t);$('#cfcopy').textContent='Copied'}catch(e){const r=document.createRange();r.selectNodeContents($('#cfacct'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('#cfcopy').textContent='Press Ctrl+C'}}};
 </script>
