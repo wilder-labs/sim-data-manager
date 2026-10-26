@@ -469,6 +469,7 @@ def summary(r):
     return '\n'.join(lines)
 
 
+<<<<<<< Updated upstream
 def match_conn(roster, con):
     """Check every roster stable against an open database connection (read only use). Returns a report dictionary.
     A stable matches when an owner row has the same name in any of its four name columns, ignoring capitals.
@@ -529,6 +530,8 @@ def match_summary(rep):
     return '\n'.join(lines)
 
 
+=======
+>>>>>>> Stashed changes
 def main(argv=None):
     import argparse
     ap = argparse.ArgumentParser(description='Residency roster tools')
@@ -539,6 +542,7 @@ def main(argv=None):
     b.add_argument('--name', help='residency name (default: the name inside the file)')
     b.add_argument('--out', help='folder to write into (default: residency-data/<code> next to the database)')
     b.add_argument('--db', default='sdm.db', help='database path, only used to find the default folder')
+<<<<<<< Updated upstream
     c = sub.add_parser('check', help='check a roster.json against the database (read only)')
     c.add_argument('roster', help='path to roster.json')
     c.add_argument('--db', default='sdm.db')
@@ -559,6 +563,9 @@ def main(argv=None):
         print(match_summary(rep))
         print('Written: %s' % os.path.join(out, 'match-report.json'))
         return 0 if not rep['unmatched'] else 2
+=======
+    a = ap.parse_args(argv)
+>>>>>>> Stashed changes
     try:
         with open(a.file, 'rb') as f:
             data = f.read(MAX_FILE + 1)

@@ -81,6 +81,7 @@ class Templates(unittest.TestCase):
             self.assertTrue(r['ok']); self.assertEqual(r['counts']['stables'], 0)
 
 
+<<<<<<< Updated upstream
 class MemberTabs(unittest.TestCase):
     def test_one_tab_per_member(self):
         try:
@@ -116,6 +117,8 @@ class DbMatch(unittest.TestCase):
         self.assertFalse(os.path.exists(db + '-wal'))
 
 
+=======
+>>>>>>> Stashed changes
 class Safety(unittest.TestCase):
     def test_xml_entities_rejected(self):
         b = io.BytesIO()
