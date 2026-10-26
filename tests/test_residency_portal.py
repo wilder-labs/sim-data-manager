@@ -344,7 +344,7 @@ class Polls(unittest.TestCase):
 
     def test_embed_scoped_css(self):
         self.fill(1, '2026-10-06', [1, 2, 3, 4, 5, 6])
-        h = P.embed_html(self.st, self.roster, '2026-10-05', '2026-10-18', 'claiming', 'divi')
+        h = P.embed_html(self.st, self.roster, '2026-10-05', '2026-10-18', 'claiming', 'plain')
         css = h[h.index('<style>') + 7:h.index('</style>')]
         import re as _re
         for sel in _re.findall(r'(?:^|\})([^{}@]+)\{', css):
@@ -356,7 +356,7 @@ class Polls(unittest.TestCase):
         q = {'code': 'pl', 'from': '2026-10-05', 'to': '2026-10-18'}
         s, ct, data, _ = P.route(self.app, 'GET', '/api/residency/polls', q, {})
         self.assertEqual(s, 200); self.assertEqual(json.loads(data)['claiming']['rows'][0]['name'], 'Ann')
-        s, ct, data, extra = P.route(self.app, 'GET', '/api/residency/embed', dict(q, board='claiming', skin='btb'), {})
+        s, ct, data, extra = P.route(self.app, 'GET', '/api/residency/embed', dict(q, board='claiming', skin='plain'), {})
         self.assertEqual(s, 200); self.assertIn('attachment', extra['Content-Disposition']); self.assertIn("default-src 'none'", extra['Content-Security-Policy'])
         s, ct, data, extra = P.route(self.app, 'GET', '/api/residency/embed', dict(q, board='standings', skin='plain', view='1'), {})
         self.assertEqual(s, 200); self.assertNotIn('Content-Disposition', extra)
@@ -448,7 +448,7 @@ class Routes(Base):
         self.assertEqual(s, 200); self.assertIn('text/html', ct)
         self.assertIn(b'<table', self.live(board='standings')[2])
         self.assertIn('frame-ancestors *', hdr['Content-Security-Policy'])
-        self.assertNotIn(b'<script', data.lower())
+        self.assertNotIn(b'<script', self.live(board='claiming')[2].lower())     # the table boards carry no script at all
         self.assertEqual(self.pub('sesame', enabled=False)[0], 200)
         self.assertEqual(self.live()[0], 404)
 
@@ -480,7 +480,7 @@ class Routes(Base):
             self.st.db.execute('INSERT INTO entries(racenum,week,hid,owner_id,fin,earn) VALUES(?,?,?,?,?,?)', (rn, wk(day), 1, owner, fin, 1000))
         self.race('2026-10-18', 'Clm'); self.st.db.commit()
         self.pub('sesame', enabled=True)
-        s, ct, data, hdr = self.live()                       # default board is the week card
+        s, ct, data, hdr = self.live(board='week')
         self.assertEqual(s, 200)
         t = data.decode()
         self.assertIn('Week in<br>the books', t); self.assertIn('Week of Oct 12', t)
@@ -490,11 +490,76 @@ class Routes(Base):
         self.assertIn('fonts.googleapis.com', hdr['Content-Security-Policy'])
         self.assertEqual(self.live(board='week', range='this_week')[0], 200)
 
+    def test_tote_is_default_with_real_rows_sorting_and_looks(self):
+        self.hosted()
+        self.race('2026-10-05', 'Clm')
+        for day, owner, fin in (('2026-10-12', 1, 1), ('2026-10-13', 1, 1), ('2026-10-12', 3, 2)):
+            rn = self.race(day, 'Clm')
+            self.st.db.execute('INSERT INTO entries(racenum,week,hid,owner_id,fin,earn) VALUES(?,?,?,?,?,?)', (rn, wk(day), 1, owner, fin, 1000))
+        self.race('2026-10-18', 'Clm'); self.st.db.commit()
+        self.pub('sesame', enabled=True)
+        s, ct, data, hdr = self.live()                                  # no board given: the Tote
+        t = data.decode()
+        self.assertEqual(s, 200); self.assertIn('<th class="wcol">Win</th>', t); self.assertIn('class="silk"', t); self.assertIn('8 weeks', t)
+        self.assertIn('>Ann</span>', t); self.assertIn('$2,000', t)
+        self.assertIn("script-src 'unsafe-inline'", hdr['Content-Security-Policy'])
+        self.assertIn('data-look="paper"', self.live(look='paper')[2].decode())
+        self.assertIn('sorted by wins', self.live(sort='w')[2].decode())
+        self.assertEqual(self.live(look='neon')[0], 404); self.assertEqual(self.live(sort='x')[0], 404)
+        self.assertNotIn("script-src", self.live(board='claiming')[3]['Content-Security-Policy'])
+
+    def site_data(self):
+        self.hosted()
+        db = self.st.db
+        db.execute("INSERT INTO horses(hid,hname,sex) VALUES(1,'<script>x</script> Dash','C')")
+        db.execute("INSERT INTO horses(hid,hname,sex) VALUES(2,'Plain Jane','F')")
+        self.race('2026-10-05', 'Clm')
+        for day, owner, fin, restr, hid in (('2026-10-12', 1, 1, 'Clm', 1), ('2026-10-13', 1, 2, 'Clm', 2), ('2026-10-14', 1, 1, 'Clm', 2), ('2026-10-12', 3, 1, 'Clm', 1),
+                                            ('2026-10-15', 1, 1, 'G2', 1), ('2026-10-16', 3, 1, 'Stk', 2), ('2026-10-16', 3, 3, 'Clm', 2), ('2026-10-17', 3, 2, 'Clm', 2)) * 4:
+            rn = self.race(day, restr)
+            db.execute('UPDATE races SET purse=50000, dist=8.5, surf="Turf" WHERE racenum=?', (rn,))
+            db.execute('INSERT INTO entries(racenum,week,hid,owner_id,fin,earn) VALUES(?,?,?,?,?,?)', (rn, wk(day), hid, owner, fin, 1000))
+        self.race('2026-10-18', 'Clm'); db.commit()
+        self.pub('sesame', enabled=True)
+
+    def test_every_tab_has_real_data_and_the_tabs_across_the_top(self):
+        self.site_data()
+        names = ('The Tote', 'Claiming Poll', 'Top 10 Poll', 'Stakes Room', 'Claiming Crown', 'Member Cards', 'Week in the Books')
+        for board in ('tote', 'poll', 'top10', 'stakes', 'crown', 'cards', 'week'):
+            for look in ('auto', 'dark', 'light', 'paper'):
+                s, ct, data, hdr = self.live(board=board, look=look, range='this_week')
+                t = data.decode()
+                self.assertEqual(s, 200, (board, look)); self.assertIn('data-look="%s"' % look, t)
+                for n in names:
+                    self.assertIn('>%s</a>' % n, t)                      # every tab link is on every page
+                self.assertIn('aria-current="page"', t)
+                self.assertIn('Leaderboards', t)
+                self.assertNotIn('<script>x</script>', t)               # names from the data are escaped
+                self.assertEqual("script-src" in hdr['Content-Security-Policy'], board == 'tote', board)
+        t = self.live(board='stakes', range='this_week')[2].decode()
+        self.assertIn('&lt;script&gt;x&lt;/script&gt; Dash', t); self.assertIn('class="gr G2"', t); self.assertIn('class="gr Stk"', t)
+        self.assertIn('stakes win', t)
+        self.assertIn('class="gr Stk"', self.live(board='stakes', range='this_week', grade='Stk')[2].decode())
+        self.assertNotIn('class="gr G2"', self.live(board='stakes', range='this_week', grade='Stk')[2].decode())
+        p = self.live(board='poll', range='this_week')[2].decode()
+        self.assertIn('Ann', p); self.assertIn('How the rating works', p); self.assertIn('<details class="pd">', p)
+        c = self.live(board='crown', range='this_week', min='0')[2].decode()
+        self.assertIn('<svg viewBox', c); self.assertIn('Win %', c)
+        self.assertIn('Rating parts', self.live(board='cards', range='this_week')[2].decode())
+        self.assertIn('Week in', self.live(board='week', range='this_week')[2].decode())
+        bare = self.live(board='poll', range='this_week', bare='1')[2].decode()
+        self.assertNotIn('class="tabs"', bare)
+
+    def test_site_odd_values_are_404(self):
+        self.site_data()
+        for q in ({'grade': 'G9'}, {'min': 'x'}, {'min': '999'}, {'min': '-1'}, {'bare': '2'}, {'sort': 'zzz'}, {'board': 'crown', 'sort': 'earn'}):
+            self.assertEqual(self.live(**q)[0], 404, q)
+
     def test_live_rejects_odd_values(self):
         self.hosted(); self.race('2026-10-01', 'Clm'); self.race('2026-10-14', 'Clm'); self.st.db.commit(); self.pub('sesame', enabled=True)
         for q in ({'board': 'x'}, {'skin': 'evil'}, {'range': '../..'}, {'code': '../x'}, {'code': ''}):
             self.assertEqual(self.live(**q)[0], 404, q)
-        self.assertEqual(self.live(skin='btb')[0], 200)
+        self.assertEqual(self.live(skin='plain')[0], 200)
 
 
     def test_bad_code_and_traversal(self):
@@ -561,7 +626,7 @@ class Routes(Base):
 class Safety(unittest.TestCase):
     def test_no_site_or_network_in_code(self):
         here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        for f in ('residency_portal.py', os.path.join('static', 'residency.html')):
+        for f in ('residency_portal.py', 'residency_site.py', os.path.join('static', 'residency.html')):
             t = open(os.path.join(here, 'sdmmodern', f), encoding='utf-8').read().lower()
             t = t.replace('https://fonts.gstatic.com', '').replace('https://fonts.googleapis.com', '')    # page fonts the browser loads; this code never fetches them
             for bad in ('ehorseracing', 'urllib.request', 'http.client', 'socket', 'requests', 'https://', 'http://'):

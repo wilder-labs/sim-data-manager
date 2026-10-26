@@ -756,6 +756,7 @@ html[data-theme="paper"] dialog a:not(.viewerlink){color:var(--accent);text-deco
     <button data-act="archive">Get New Race Data…</button>
     <button data-act="denovo">Open denovo Archive in Browser ↗</button>
     <button data-act="import">Add a Data File…</button>
+    <button data-act="resroster">Add a Residency Roster…</button>
     <button data-act="shared">Get the Shared Database…</button>
     <button data-act="share">Share Database to Google Drive…</button>
 
@@ -1364,6 +1365,7 @@ function toast(m){dialog(`<h3>Sim Data Manager</h3><div class="msg ok">${esc(m)}
 async function wkDate(w){try{return (await api('/api/date?week='+w)).date}catch(e){return 'week '+w}}
 const actions={
   resopen(){openRes()},
+  resroster(){openRes('roster')},
   t25week(){openT25('week')},
   t25season(){openT25('season')},
   t25import(){
@@ -1731,10 +1733,10 @@ document.getElementById('t25btn').addEventListener('click',()=>openT25('week'));
 <div id="res" hidden><iframe id="resf" title="Residency Leaderboards"></iframe></div>
 <style>#res{position:fixed;inset:0;z-index:900;background:var(--bg)}#res iframe{display:block;border:0;width:100%;height:100%}</style>
 <script>
-function openRes(){const o=document.getElementById('res'),f=document.getElementById('resf');
-  if(!f.getAttribute('src'))f.setAttribute('src','/residency');o.hidden=false;setTimeout(()=>{try{f.focus()}catch(e){}},50)}
+function openRes(v){const o=document.getElementById('res'),f=document.getElementById('resf'),want=(v==='roster')?'/residency?view=roster':'/residency';
+  if(f.getAttribute('src')!==want)f.setAttribute('src',want);o.hidden=false;setTimeout(()=>{try{f.focus()}catch(e){}},50)}
 window.closeRes=function(){document.getElementById('res').hidden=true;try{document.getElementById('resbtn').focus()}catch(e){}};
-document.getElementById('resbtn').addEventListener('click',openRes);
+document.getElementById('resbtn').addEventListener('click',function(){openRes()});
 </script>
 </body>
 </html>

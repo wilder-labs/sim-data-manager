@@ -418,7 +418,7 @@ def polls_csv(data, mode):
 
 
 # ---------------------------------------------------------------- embeddable snapshots (plain HTML + CSS, no scripts)
-SKINS = ('plain', 'divi', 'btb')
+SKINS = ('plain',)
 _X = html.escape
 
 
@@ -426,11 +426,8 @@ def _skin_css(skin, sid):
     r = '.rzb-' + sid
     base = {
         'plain': '--bg:#ffffff;--bg2:#f2f6f4;--ink:#10211b;--mute:#566a62;--line:#d3dcd8;--led:#14573f;--up:#1a7f4b;--dn:#c8362b;--w:#c8362b;--p:#8d9aa1;--s:#2a5bd7;--font:"Barlow Condensed","Arial Narrow",Arial,sans-serif;--body:system-ui,-apple-system,"Segoe UI",sans-serif;--disp-w:700;',
-        'divi': '--bg:var(--gcid-body-color,#fff);--bg2:rgba(127,127,127,.08);--ink:inherit;--mute:rgba(127,127,127,.95);--line:rgba(127,127,127,.28);--led:var(--gcid-primary-color,#14573f);--up:#1a7f4b;--dn:#c8362b;--w:#c8362b;--p:#8d9aa1;--s:#2a5bd7;--font:inherit;--body:inherit;--disp-w:700;',
-        'btb': '--bg:#fbfaf6;--bg2:#f1eee4;--ink:#1c1b17;--mute:#5d5a4e;--line:#cfc9b6;--led:#7a1f1f;--up:#256b3a;--dn:#a3262a;--w:#a3262a;--p:#6f6a58;--s:#1f4e8c;--font:Georgia,"Times New Roman",serif;--body:Georgia,"Times New Roman",serif;--disp-w:700;',
     }[skin]
-    dark = {'plain': '--bg:#111e19;--bg2:#16271f;--ink:#e9f0eb;--mute:#8ea69b;--line:#233830;--led:#ffb020;--up:#4cc38a;--dn:#f0675a;--w:#f0675a;--p:#c3cfd4;--s:#6b98ff;',
-            'btb': '--bg:#1c1b17;--bg2:#26241d;--ink:#f1eee4;--mute:#b3ad98;--line:#44402f;--led:#e2a64a;--up:#5fbf7a;--dn:#e8706f;--w:#e8706f;--p:#b9b39c;--s:#7aa7e6;'}.get(skin)
+    dark = {'plain': '--bg:#111e19;--bg2:#16271f;--ink:#e9f0eb;--mute:#8ea69b;--line:#233830;--led:#ffb020;--up:#4cc38a;--dn:#f0675a;--w:#f0675a;--p:#c3cfd4;--s:#6b98ff;'}.get(skin)
     css = (r + '{' + base + 'background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);border:1px solid var(--line);border-radius:6px;overflow:hidden;max-width:960px;margin:0 auto;box-sizing:border-box}'
            + r + ' *{box-sizing:border-box}'
            + r + ' .h{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--bg2)}'
@@ -492,7 +489,7 @@ def _poll_html(data, mode, title):
 
 
 def embed_html(store, roster, d_from, d_to, board='claiming', skin='plain', rule=None, age='all'):
-    """A snapshot of one board as a block of HTML with its own scoped CSS and no scripts. Paste it into a Divi 5 Code module,
+    """A snapshot of one board as a block of HTML with its own scoped CSS and no scripts. Paste it into a Code module,
     a WordPress Custom HTML block, or any page that allows HTML. It shows the numbers as of the build."""
     if skin not in SKINS:
         raise PortalError('skin must be one of: ' + ', '.join(SKINS))
@@ -757,9 +754,116 @@ def week_document(store, roster, d_from, d_to, rule=None):
             % (_X(res), FONTS_LINK, WEEK_CSS, body)).encode('utf-8')
 
 
+# ---------------------------------------------------------------- the Tote: the main standings board, one design, several looks
+LOOKS = ('auto', 'dark', 'light', 'paper')
+TOTE_SORTS = ('pts', 'w', 'itm', 'earn')
+LIVE_SORTS = TOTE_SORTS + ('win',)
+TOTE_SORT_NAMES = {'pts': 'Points', 'w': 'Wins', 'itm': 'ITM %', 'earn': 'Earnings'}
+_LIGHT = '--bg:#e9eeec;--panel:#fff;--panel2:#f4f7f6;--ink:#10211b;--mute:#566a62;--line:#d3dcd8;--led:#14573f;--accent:#14573f;--accent-ink:#fff;--w:#c8362b;--pl:#8d9aa1;--sh:#2a5bd7;'
+_DARK = '--bg:#0a1310;--panel:#111e19;--panel2:#16271f;--ink:#e9f0eb;--mute:#8ea69b;--line:#233830;--led:#ffb020;--accent:#ffb020;--accent-ink:#1a1200;--w:#f0675a;--pl:#c3cfd4;--sh:#6b98ff;'
+_PAPER = '--bg:#f1eee4;--panel:#fbfaf6;--panel2:#f1eee4;--ink:#1c1b17;--mute:#5d5a4e;--line:#cfc9b6;--led:#7a1f1f;--accent:#7a1f1f;--accent-ink:#fff;--w:#a3262a;--pl:#6f6a58;--sh:#1f4e8c;--disp:Georgia,"Times New Roman",serif;--body:Georgia,"Times New Roman",serif;'
+TOTE_CSS = (
+    ':root{' + _LIGHT + '--disp:"Barlow Condensed","Arial Narrow",Arial,sans-serif;--body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif}'
+    '@media (prefers-color-scheme:dark){html[data-look="auto"]{' + _DARK + 'color-scheme:dark}}'
+    'html[data-look="dark"]{' + _DARK + 'color-scheme:dark}html[data-look="light"]{' + _LIGHT + '}html[data-look="paper"]{' + _PAPER + '}'
+    '*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding:12px}'
+    '.board{max-width:1100px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden}'
+    '.bh{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}'
+    '.bh h1{font:700 30px/1 var(--disp);text-transform:uppercase;letter-spacing:.05em;margin:0}.bh .sub{color:var(--mute);font-size:13px}'
+    '.seg{display:flex;flex-wrap:wrap;gap:4px}.seg a{font:600 13px var(--disp);letter-spacing:.08em;text-transform:uppercase;background:var(--panel);color:var(--mute);border:1px solid var(--line);border-radius:3px;padding:5px 10px;text-decoration:none}'
+    '.seg a[aria-current=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}'
+    '.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:760px;font-variant-numeric:tabular-nums}'
+    'th{font:600 13px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);text-align:right;padding:10px;border-bottom:2px solid var(--line);white-space:nowrap}'
+    'td{padding:11px 10px;text-align:right;border-bottom:1px solid var(--line);font:500 19px var(--disp);letter-spacing:.02em;white-space:nowrap}'
+    'th:first-child,td:first-child{text-align:left;padding-left:16px}td+td,th+th{border-left:1px solid var(--line)}'
+    'tr.row{cursor:pointer}tr.row:hover td{background:var(--panel2)}.wcol{color:var(--w)}.pcol{color:var(--pl)}.scol{color:var(--sh)}'
+    'th.wcol,th.pcol,th.scol{box-shadow:inset 0 -4px 0 currentColor}'
+    '.rank{font:700 34px/1 var(--disp);color:var(--led);width:34px;display:inline-block}'
+    '.who{display:inline-flex;align-items:center;gap:10px;font:600 22px var(--disp);letter-spacing:.03em;text-transform:uppercase}'
+    '.silk{width:14px;height:22px;border-radius:2px 2px 7px 7px;display:inline-block;flex:none}.mut{color:var(--mute);font:400 13px var(--body);letter-spacing:0;text-transform:none}'
+    '.pts{color:var(--led);font-size:26px;font-weight:700}'
+    '.stack{display:flex;height:9px;border-radius:2px;overflow:hidden;background:var(--line);min-width:90px}.stack i{display:block;height:100%}'
+    'tr.exp td{background:var(--panel2);text-align:left;font:400 14px var(--body);white-space:normal;padding:14px 16px 16px;border-left:0}'
+    '.exp .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}'
+    '.exp .k{font:600 12px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}.exp .v{font:600 22px var(--disp)}'
+    '.none{padding:30px 16px;color:var(--mute)}'
+    'a:focus-visible,tr.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}')
+TOTE_JS = ("document.addEventListener('click',function(e){var r=e.target.closest('tr.row');if(!r)return;var x=r.nextElementSibling;if(x&&x.classList.contains('exp')){x.hidden=!x.hidden;r.setAttribute('aria-expanded',String(!x.hidden))}});"
+           "document.addEventListener('keydown',function(e){if(e.key!=='Enter'&&e.key!==' ')return;var r=e.target.closest&&e.target.closest('tr.row');if(!r)return;e.preventDefault();r.click()});")
+
+
+def _spark(vals, color):
+    w, h = 96, 28
+    mx = max(max(vals), 1)
+    n = len(vals)
+    pts = [(i * (w - 6) / float(max(n - 1, 1)) + 3, h - 3 - (h - 8) * v / float(mx)) for i, v in enumerate(vals)]
+    d = ' '.join('%s%.1f %.1f' % ('L' if i else 'M', x, y) for i, (x, y) in enumerate(pts))
+    lx, ly = pts[-1]
+    return ('<svg width="%d" height="%d" viewBox="0 0 %d %d" role="img" aria-label="points per week, last 8 weeks"><path d="%s" fill="none" stroke="%s" stroke-width="2" stroke-linejoin="round"/>'
+            '<circle cx="%.1f" cy="%.1f" r="3" fill="%s"/></svg>' % (w, h, w, h, d, color, lx, ly, color))
+
+
+def _pctf(a, b):
+    return 100.0 * a / b if b else 0.0
+
+
+def tote_inner(store, roster, d_from, d_to, rule=None, sort='pts', base=''):
+    """The parts of the Tote: (sub line, sort links, table html). Used by the stand-alone page and by the tabbed site."""
+    f, t = _date(d_from, 'From'), _date(d_to, 'To')
+    b = compute(store, roster, d_from, d_to, rule, 'all')
+    tl = _tally(store, roster, d_from, d_to, 'all')
+    order = [m['name'] for m in roster.get('members', [])]
+    stables = {m['name']: sum(len(x['stables']) for x in m['masters']) for m in roster.get('members', [])}
+    weeks = []                                                  # eight 7-day blocks ending on the last day, oldest first
+    for k in range(7, -1, -1):
+        e = t - datetime.timedelta(days=7 * k)
+        r = compute(store, roster, (e - datetime.timedelta(days=6)).isoformat(), e.isoformat(), rule, 'all')
+        weeks.append({m['name']: m['total'] for m in r['members']})
+    rows = []
+    for m in b['members']:
+        a = tl.get(RS.norm_key(m['name']), {})
+        n = m['starts']
+        itm = _pctf(m['wins'] + m['seconds'] + m['thirds'], n)
+        rows.append(dict(name=m['name'], n=n, w=m['wins'], p=m['seconds'], s=m['thirds'], pts=m['total'], itm=itm, earn=int(round(a.get('earn', 0) or 0)),
+                         color=WEEK_COLORS[order.index(m['name']) % len(WEEK_COLORS)] if m['name'] in order else WEEK_COLORS[0],
+                         weekly=[wk.get(m['name'], 0) for wk in weeks], stables=stables.get(m['name'], 0)))
+    key = {'pts': lambda r: (r['pts'], r['w']), 'w': lambda r: (r['w'], r['pts']), 'itm': lambda r: (r['itm'], r['n']), 'earn': lambda r: (r['earn'], r['pts'])}[sort]
+    rows.sort(key=lambda r: (tuple(-x for x in key(r)), r['name'].lower()))
+    body = []
+    for i, r in enumerate(rows):
+        body.append('<tr class="row" tabindex="0" aria-expanded="false"><td><span class="rank">%d</span><span class="who"><span class="silk" style="background:%s"></span>%s</span> <span class="mut">%d stable%s</span></td>'
+                    '<td>%d</td><td class="wcol">%d</td><td class="pcol">%d</td><td class="scol">%d</td><td>%.1f%%</td><td>%.1f%%</td><td>$%s</td><td>%s</td><td class="pts">%s</td></tr>'
+                    % (i + 1, r['color'], _X(r['name']), r['stables'], '' if r['stables'] == 1 else 's', r['n'], r['w'], r['p'], r['s'], _pctf(r['w'], r['n']), r['itm'],
+                       format(r['earn'], ','), _spark(r['weekly'], r['color']), _X('%g' % r['pts'])))
+        body.append('<tr class="exp" hidden><td colspan="10"><div class="cols">'
+                    '<div><div class="k">Win / Place / Show</div><div class="stack" role="img" aria-label="%d wins, %d seconds, %d thirds"><i style="width:%.1f%%;background:var(--w)"></i><i style="width:%.1f%%;background:var(--pl)"></i><i style="width:%.1f%%;background:var(--sh)"></i></div>'
+                    '<div class="mut" style="margin-top:4px">%d wins, %d seconds, %d thirds from %d starts</div></div>'
+                    '<div><div class="k">Place %%</div><div class="v">%.1f%%</div></div><div><div class="k">Show %%</div><div class="v">%.1f%%</div></div>'
+                    '<div><div class="k">Earnings per start</div><div class="v">$%s</div></div><div><div class="k">Best week</div><div class="v">%s pts</div></div></div></td></tr>'
+                    % (r['w'], r['p'], r['s'], _pctf(r['w'], r['n']), _pctf(r['p'], r['n']), _pctf(r['s'], r['n']), r['w'], r['p'], r['s'], r['n'],
+                       _pctf(r['p'], r['n']), _pctf(r['s'], r['n']), format(int(round(r['earn'] / float(r['n']))) if r['n'] else 0, ','), _X('%g' % max(r['weekly']))))
+    segs = ''.join('<a href="%ssort=%s" %s>%s</a>' % (base, k, 'aria-current="true"' if k == sort else '', TOTE_SORT_NAMES[k]) for k in TOTE_SORTS)
+    sub = '%s to %s, %d &middot; all races &middot; sorted by %s' % (_md(f), _md(t), t.year, TOTE_SORT_NAMES[sort].lower())
+    table = ('<div class="scroll"><table><thead><tr><th>Member</th><th>Starts</th><th class="wcol">Win</th><th class="pcol">Place</th><th class="scol">Show</th>'
+             '<th>Win %</th><th>ITM %</th><th>Earnings</th><th>8 weeks</th><th>Pts</th></tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>') if rows else '<div class="none">No results in these dates yet.</div>'
+    return sub, segs, table
+
+
+def tote_document(store, roster, d_from, d_to, rule=None, look='auto', sort='pts', base=''):
+    """The Tote as a full page. Click a row for more. Sort and look come from the link. One small script only opens and closes rows."""
+    sub, segs, table = tote_inner(store, roster, d_from, d_to, rule, sort, base)
+    res = roster.get('residency') or (roster.get('code') or '').upper()
+    return ('<!doctype html><html lang="en" data-look="%s"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'
+            '<title>%s standings</title>%s<style>%s</style></head><body><div class="board"><div class="bh"><div><h1>%s standings</h1><div class="sub">%s</div></div>'
+            '<div class="seg" role="group" aria-label="Sort by">%s</div></div>%s</div><script>%s</script></body></html>'
+            % (look, _X(res), FONTS_LINK, TOTE_CSS, _X(res), sub, segs, table, TOTE_JS)).encode('utf-8')
+
+
 # ---------------------------------------------------------------- public boards (live, read-only, switched on by the admin)
 PUBLIC_RANGES = ('latest', 'this_week', 'last_week', 'last_4', 'season')
-PUBLIC_BOARDS = ('week', 'claiming', 'overall', 'standings')
+PUBLIC_BOARDS = ('tote', 'poll', 'top10', 'stakes', 'crown', 'cards', 'week', 'claiming', 'overall', 'standings')
+SITE_BOARDS = ('tote', 'poll', 'top10', 'stakes', 'crown', 'cards', 'week')
+SITE_GRADES = ('All', 'G1', 'G2', 'G3', 'Stk')
 LIVE_TTL = 300
 _live_cache = {}
 _live_lock = threading.Lock()
@@ -828,22 +932,40 @@ def live_page(store, q):
     pub = get_public(store, code)
     if not pub:
         raise PortalError('Not found.', 404)
-    board = q.get('board', 'week')
+    board = q.get('board', 'tote')
+    look = q.get('look') or 'auto'
+    sort = q.get('sort') or ('itm' if board == 'crown' else 'pts')
+    grade = q.get('grade') or 'All'
+    bare = q.get('bare') == '1'
+    minimum = None
+    if q.get('min') not in (None, ''):
+        try:
+            minimum = int(q['min'])
+        except (TypeError, ValueError):
+            raise PortalError('Not found.', 404)
+        if not 0 <= minimum <= 60:
+            raise PortalError('Not found.', 404)
+    if look not in LOOKS or sort not in LIVE_SORTS or grade not in SITE_GRADES or (q.get('bare') not in (None, '', '1', '0')):
+        raise PortalError('Not found.', 404)
+    if board == 'crown' and sort == 'earn' or board in ('tote',) and sort == 'win':
+        raise PortalError('Not found.', 404)
     skin = q.get('skin') or pub['skin']
     rng = q.get('range') or pub['range']
     if board not in PUBLIC_BOARDS or skin not in SKINS or rng not in PUBLIC_RANGES:
         raise PortalError('Not found.', 404)
     d_from, d_to = live_range(store, rng)
-    key = (code, board, skin, d_from, d_to, os.path.getmtime(os.path.join(_dir(store, code), 'roster.json')) if os.path.isfile(os.path.join(_dir(store, code), 'roster.json')) else 0,
-           os.path.getmtime(os.path.join(_dir(store, code), 'rules.json')) if os.path.isfile(os.path.join(_dir(store, code), 'rules.json')) else 0)
+    dd = _dir(store, code)
+    mt = lambda n: os.path.getmtime(os.path.join(dd, n)) if os.path.isfile(os.path.join(dd, n)) else 0
+    key = (code, board, skin, look, sort, grade, minimum, bare, d_from, d_to, mt('roster.json'), mt('rules.json'))
     now = time.time()
     with _live_lock:
         hit = _live_cache.get(key)
         if hit and now - hit[0] < LIVE_TTL:
             return hit[1]
     roster = load_roster(store, code)
-    if board == 'week':
-        page = week_document(store, roster, d_from, d_to, load_rule(store, code))
+    if board in SITE_BOARDS:
+        from . import residency_site as SITE
+        page = SITE.site_document(store, roster, d_from, d_to, load_rule(store, code), code, board, look, rng, sort, grade, minimum, bare)
         with _live_lock:
             if len(_live_cache) > 200:
                 _live_cache.clear()
@@ -886,8 +1008,9 @@ def route(app, method, path, q, headers, body=b''):
             if path == '/api/residency/live':
                 with app.lock:
                     page = live_page(st, q)
+                script = "; script-src 'unsafe-inline'" if (q.get('board') or 'tote') == 'tote' else ''
                 return 200, 'text/html; charset=utf-8', page, {
-                    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; frame-ancestors *",
+                    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com" + script + "; frame-ancestors *",
                     'Cache-Control': 'public, max-age=300'}
             with app.lock:
                 if path in ('/api/residency/roster', '/api/residency/board', '/api/residency/polls', '/api/residency/embed', '/api/residency/export'):

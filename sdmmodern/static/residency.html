@@ -46,10 +46,11 @@ ul.list{margin:6px 0 0 18px;padding:0}
 <div class="row"><div><label for="code">Residency code (letters, numbers, dashes)</label><input id="code" maxlength="24" placeholder="nwrc" autocomplete="off"></div>
 <div id="keybox" hidden><label for="key">Admin key</label><input id="key" type="password" autocomplete="off" style="width:240px" placeholder="the site admin key"></div>
 <button id="load">Open</button><span id="rmsg" class="mute"></span></div>
+<div id="rosterhint" class="mute" style="margin-top:6px">To add or replace a roster, use <b>Data &rarr; Add a Residency Roster</b> in the top menu.</div>
 <div id="keyhint" class="mute" hidden style="margin-top:6px">This site keeps rosters private until you switch a residency to public. Type the admin key once; this browser remembers it.</div>
 <div id="rsum" class="mute" style="margin-top:8px"></div></section>
 
-<section id="s-up" hidden><h2>2. Roster file</h2>
+<section id="s-up" hidden><h2>Roster file</h2>
 <div class="mute">Upload the roster workbook (.xlsx) or .csv. It replaces the saved roster for this code.</div>
 <div class="row" style="margin-top:8px">
 <div><label for="file">File</label><input id="file" type="file" accept=".xlsx,.csv"></div>
@@ -94,17 +95,17 @@ ul.list{margin:6px 0 0 18px;padding:0}
 <div id="pmsg" class="mute" style="margin:8px 0"></div><div id="polls" class="poll"></div></section>
 
 <section id="s-emb"><h2>7. Put a board on a website</h2>
-<div class="mute">Makes a snapshot of one board as a block of HTML with its own styling and no scripts. Paste it into a Divi 5 Code module, a WordPress Custom HTML block, or any page that accepts HTML. It shows the numbers as of the moment you make it. Make a new one after each update.</div>
+<div class="mute">Makes a snapshot of one board as a block of HTML with its own styling and no scripts. Paste it into a Code module, a WordPress Custom HTML block, or any page that accepts HTML. It shows the numbers as of the moment you make it. Make a new one after each update.</div>
 <div class="row" style="margin-top:8px"><div><label for="eb">Board</label><select id="eb"><option value="claiming">Claiming trainer poll</option><option value="overall">Top 10 poll</option><option value="standings">Standings</option></select></div>
-<div><label for="es">Look</label><select id="es"><option value="plain">Plain</option><option value="divi">Divi 5 (uses the site fonts and colors)</option><option value="btb">BtB (racing-form paper)</option></select></div>
+<div><label for="es">Look</label><select id="es"><option value="plain">Plain</option></select></div>
 <button id="e-pv" disabled>Preview</button><button id="e-dl" disabled>Download HTML</button><button id="e-cp" disabled>Copy the code</button></div>
 <div id="emsg" class="mute" style="margin-top:8px"></div><iframe id="prev" title="Preview" sandbox hidden></iframe></section>
 
-<section id="s-pub" hidden><h2>8. Public boards</h2>
-<div class="mute">A public board is a page that anyone can open or frame on their own website. It always shows the newest finished week and updates by itself as new races load (it can be up to 5 minutes behind). Only the board is public: no roster file, no stables list, no downloads. Only the site admin key can switch this on.</div>
+<section id="s-pub" hidden><h2>8. Public site</h2>
+<div class="mute">A public site is one link with seven tabs across the top (The Tote, Claiming Poll, Top 10 Poll, Stakes Room, Claiming Crown, Member Cards, Week in the Books). Visitors pick the dates and the look on the page. It opens on the newest finished week and updates by itself as new races load (it can be up to 5 minutes behind). Only the board is public: no roster file, no stables list, no downloads. Only the site admin key can switch this on.</div>
 <div class="row" style="margin-top:8px"><div><label for="pub-on">Public</label><select id="pub-on"><option value="0">Off (private)</option><option value="1">On (anyone with the link)</option></select></div>
 <div><label for="pub-r">Dates shown</label><select id="pub-r"><option value="latest">Newest finished week (Mon&ndash;Sun)</option><option value="this_week">This week so far</option><option value="last_4">Last 4 weeks</option><option value="season">This year so far</option></select></div>
-<div><label for="pub-s">Look</label><select id="pub-s"><option value="plain">Plain</option><option value="divi">Divi 5 (uses the site fonts and colors)</option><option value="btb">BtB (racing-form paper)</option></select></div>
+<div><label for="pub-l">Look</label><select id="pub-l"><option value="auto">Auto (follows the visitor)</option><option value="dark">Dark</option><option value="light">Light</option><option value="paper">Paper</option></select></div><select id="pub-s" hidden><option value="plain">Plain</option></select>
 <button id="pub-save" class="pri" disabled>Save</button></div>
 <div id="pubmsg" class="mute" style="margin-top:8px"></div><div id="publinks" style="margin-top:8px"></div></section>
 </main>
@@ -113,6 +114,7 @@ ul.list{margin:6px 0 0 18px;padding:0}
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+var ROSTER_VIEW=/[?&]view=roster/.test(location.search);
 var st={can_write:false,needs_key:false,first:null,last:null,roster:null,board:null};
 /* close button when shown inside the program window */
 try{if(window.parent!==window&&parent.closeRes){$('closeres').hidden=false;$('closeres').onclick=function(){parent.closeRes()};document.addEventListener('keydown',function(e){if(e.key==='Escape')parent.closeRes()})}}catch(e){}
@@ -158,7 +160,7 @@ function dl(url){if(!st.needs_key){location.href=url;return}
 function code(){return $('code').value.trim().toLowerCase()}
 function init(){api('/api/residency/status').then(function(s){
  st.can_write=s.can_write;st.needs_key=s.needs_key;st.first=s.first_date;st.last=s.last_date;
- $('s-up').hidden=!s.can_write&&!s.needs_key;$('keybox').hidden=!s.needs_key;$('keyhint').hidden=!s.needs_key;$('saver').hidden=!s.can_write;
+ $('s-up').hidden=!ROSTER_VIEW||(!s.can_write&&!s.needs_key);$('keybox').hidden=!s.needs_key;$('keyhint').hidden=!s.needs_key;$('saver').hidden=!s.can_write;
  if(!s.can_write&&s.needs_key){$('s-up').hidden=true}
  if(s.first_date){$('drange').textContent='Data covers '+s.first_date+' to '+s.last_date;$('from').min=$('to').min=s.first_date;$('from').max=$('to').max=s.last_date}
  preset();var c=ls('sdm_res_code');if(c){$('code').value=c;openRes()}
@@ -242,25 +244,32 @@ function eq(extra){return pq('&board='+$('eb').value+'&skin='+$('es').value+(ext
 $('e-pv').onclick=function(){var f=$('prev');$('emsg').textContent='';fetch('/api/residency/embed?'+eq('&view=1'),keyed()).then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error((function(){try{return JSON.parse(t).error}catch(e){return 'Error '+r.status}})());return t})}).then(function(t){f.hidden=false;f.srcdoc=t}).catch(function(e){$('emsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
 $('e-dl').onclick=function(){dl('/api/residency/embed?'+eq())};
 $('e-cp').onclick=function(){fetch('/api/residency/embed?'+eq('&view=1'),keyed()).then(function(r){return r.text()}).then(function(t){
- try{navigator.clipboard.writeText(t).then(function(){$('emsg').innerHTML='<span class="ok">Copied. Paste it into a Divi 5 Code module or a WordPress Custom HTML block.</span>'},function(){fallback(t)})}catch(e){fallback(t)}})};
+ try{navigator.clipboard.writeText(t).then(function(){$('emsg').innerHTML='<span class="ok">Copied. Paste it into a Code module or a WordPress Custom HTML block.</span>'},function(){fallback(t)})}catch(e){fallback(t)}})};
 function fallback(t){$('emsg').innerHTML='<span class="warn">Copy did not work here. Use Download HTML instead.</span>'}
 
 /* public boards */
-var PUBH={week:800,claiming:620,overall:980,standings:520},PUBN={week:'Week in the Books (the picture card)',claiming:'Claiming trainer poll',overall:'Top 10 poll',standings:'Standings'};
-function pubShow(p){$('pub-on').value=p?'1':'0';if(p){$('pub-r').value=p.range;$('pub-s').value=p.skin}
- var h='';if(p){['week','claiming','overall','standings'].forEach(function(b){
-  var u=location.origin+'/api/residency/live?code='+encodeURIComponent(code())+'&board='+b;
-  var f='<iframe src="'+u+'" title="'+PUBN[b]+'" loading="lazy" style="width:100%;height:'+PUBH[b]+'px;border:0"></iframe>';
-  h+='<div style="margin:10px 0;'+(b==='week'?'border:2px solid var(--accent);border-radius:8px;padding:10px':'')+'"><b>'+PUBN[b]+'</b>'+(b==='week'?' <span class="mute">&mdash; the one link to share</span>':'')+'<div class="mute" style="word-break:break-all">Link: <a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a></div>'
-   +'<button class="pcopy" data-c="'+esc(u)+'">Copy the link</button> <button class="pcopy" data-c="'+esc(f)+'">Copy the embed code</button></div>'})}
+var PUBTABS=[['tote','The Tote'],['poll','Claiming Poll'],['top10','Top 10 Poll'],['stakes','Stakes Room'],['crown','Claiming Crown'],['cards','Member Cards'],['week','Week in the Books']];
+var PUBLAST=null;
+function liveUrl(b,extra){return location.origin+'/api/residency/live?code='+encodeURIComponent(code())+'&board='+b+'&look='+$('pub-l').value+(extra||'')}
+function pubShow(p){PUBLAST=p;$('pub-on').value=p?'1':'0';if(p){$('pub-r').value=p.range;$('pub-s').value=p.skin}
+ var h='';if(p){var u=liveUrl('tote'),f='<iframe src="'+u+'" title="Leaderboards" loading="lazy" style="width:100%;height:1500px;border:0"></iframe>';
+  h+='<div style="margin:10px 0;border:2px solid var(--accent);border-radius:8px;padding:10px"><b>The whole site</b> <span class="mute">&mdash; the one link to share. All seven tabs across the top.</span>'
+   +'<div class="mute" style="word-break:break-all">Link: <a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a></div>'
+   +'<button class="pcopy" data-c="'+esc(u)+'">Copy the link</button> <button class="pcopy" data-c="'+esc(f)+'">Copy the embed code</button></div>';
+  h+='<div class="mute" style="margin-top:12px">A single tab, with no tab bar, for a spot on a page:</div>';
+  PUBTABS.forEach(function(t){var tu=liveUrl(t[0],'&bare=1'),tf='<iframe src="'+tu+'" title="'+t[1]+'" loading="lazy" style="width:100%;height:900px;border:0"></iframe>';
+   h+='<div style="margin:6px 0"><b>'+t[1]+'</b> <button class="pcopy" data-c="'+esc(tu)+'">Copy the link</button> <button class="pcopy" data-c="'+esc(tf)+'">Copy the embed code</button></div>'})}
  $('publinks').innerHTML=h}
+$('pub-l').onchange=function(){pubShow(PUBLAST)};
 $('publinks').onclick=function(e){var b=e.target.closest('.pcopy');if(!b)return;var t=b.getAttribute('data-c');
- try{navigator.clipboard.writeText(t).then(function(){$('pubmsg').innerHTML='<span class="ok">Copied. A link opens the page on its own. Embed code goes in a Divi 5 Code module or a WordPress Custom HTML block; set the height there if the board looks cut off.</span>'},function(){$('pubmsg').innerHTML='<span class="warn">Copy did not work here.</span>'})}catch(x){$('pubmsg').innerHTML='<span class="warn">Copy did not work here.</span>'}};
+ try{navigator.clipboard.writeText(t).then(function(){$('pubmsg').innerHTML='<span class="ok">Copied. A link opens the page on its own. Embed code goes in a Code module or a WordPress Custom HTML block; set the height there if the page looks cut off.</span>'},function(){$('pubmsg').innerHTML='<span class="warn">Copy did not work here.</span>'})}catch(x){$('pubmsg').innerHTML='<span class="warn">Copy did not work here.</span>'}};
 $('pub-save').onclick=function(){$('pubmsg').textContent='Saving…';
  post('/api/residency/public',{code:code(),enabled:$('pub-on').value==='1',range:$('pub-r').value,skin:$('pub-s').value}).then(function(j){pubShow(j.public);$('pubmsg').innerHTML='<span class="ok">Saved. '+(j.public?'This residency\'s boards are public.':'This residency is private again.')+'</span>'}).catch(function(e){$('pubmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
 
 try{var sk=ls(KEYN);if(sk)$('key').value=sk}catch(e){}
 $('key').onchange=function(){ls(KEYN,this.value.trim())};
+if(ROSTER_VIEW){document.querySelector('h1').textContent='Add a residency roster';var mainEl=document.querySelector('main');
+ Array.prototype.forEach.call(mainEl.children,function(e){if(e.id!=='s-code'&&e.id!=='s-up')e.style.display='none'});$('rosterhint').hidden=true;$('s-code').querySelector('h2').textContent='Residency'}
 init();
 })();
 </script></body></html>
