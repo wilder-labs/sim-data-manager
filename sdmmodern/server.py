@@ -127,7 +127,7 @@ def make_handler(app):
             n = int(self.headers.get('Content-Length') or 0)
             body = self.rfile.read(n) if n else b''
             try:
-                if u.path in ('/api/residency/upload', '/api/residency/rules', '/api/residency/newkey'):
+                if u.path in ('/api/residency/upload', '/api/residency/rules', '/api/residency/newkey', '/api/residency/public'):
                     return RP.serve(self, app, 'POST', u.path, q, body)
                 if u.path == '/api/archive/start':
                     a = json.loads(body or b'{}')
