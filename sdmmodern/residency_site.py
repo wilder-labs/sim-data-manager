@@ -34,6 +34,9 @@ SITE_CSS = (
     '.opts{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;padding:12px 0}.opts .seg a{padding:4px 9px}'
     '.opts label{font:600 12px var(--disp);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-right:6px}'
     '.opts>div{display:flex;align-items:center;flex-wrap:wrap}'
+    'form.dates{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}form.dates label{margin:0 0 0 4px}'
+    'form.dates input[type=date]{font:500 14px var(--body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 8px}'
+    'form.dates button{font:600 13px var(--disp);letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);border-radius:3px;padding:5px 12px;cursor:pointer}'
     'h2.bt{font:700 30px/1 var(--disp);text-transform:uppercase;letter-spacing:.05em;margin:0}'
     '.poll details.pd{border-bottom:1px solid var(--line);background:var(--panel)}'
     '.poll details.pd>summary{display:grid;grid-template-columns:78px minmax(0,1fr) 120px;gap:6px 16px;align-items:center;padding:14px 16px;cursor:pointer;list-style:none}'
@@ -339,7 +342,11 @@ def cards_inner(data, roster):
 
 # ---------------------------------------------------------------- the page
 def _url(code, board, look, rng, **kw):
-    u = '/api/residency/live?code=%s&amp;board=%s&amp;look=%s&amp;range=%s' % (code, board, look, rng)
+    dates = kw.pop('dates', None)
+    if rng == 'custom' and dates:
+        u = '/api/residency/live?code=%s&amp;board=%s&amp;look=%s&amp;from=%s&amp;to=%s' % (code, board, look, dates[0], dates[1])
+    else:
+        u = '/api/residency/live?code=%s&amp;board=%s&amp;look=%s&amp;range=%s' % (code, board, look, rng if rng != 'custom' else 'latest')
     for k, v in kw.items():
         if v not in (None, '', False):
             u += '&amp;%s=%s' % (k, v)
@@ -349,7 +356,7 @@ def _url(code, board, look, rng, **kw):
 def site_document(store, roster, d_from, d_to, rule, code, board, look, rng, sort='pts', grade='All', minimum=None, bare=False):
     f, t = P._date(d_from, 'From'), P._date(d_to, 'To')
     days = (t - f).days + 1
-    keep = dict(bare='1' if bare else None)
+    keep = dict(bare='1' if bare else None, dates=(d_from, d_to) if rng == 'custom' else None)
     title_name = dict(TABS)[board]
     base = _url(code, board, look, rng, **keep) + '&amp;'
     seg = ''
@@ -378,13 +385,19 @@ def site_document(store, roster, d_from, d_to, rule, code, board, look, rng, sor
             content = '<div style="max-width:560px;margin:0 auto">' + P.week_page(store, roster, d_from, d_to, rule).replace('class="wk"', 'class="wk" style="margin-top:0"', 1) + '</div>'
     res = _res(roster)
     nav = ''.join('<a href="%s" %s>%s</a>' % (_url(code, k, look, rng, **keep), 'aria-current="page"' if k == board else '', _X(n)) for k, n in TABS)
-    ropts = ''.join('<a href="%s" %s>%s</a>' % (_url(code, board, look, k, **keep), 'aria-current="true"' if k == rng else '', n) for k, n in RANGE_NAMES)
+    ropts = ''.join('<a href="%s" %s>%s</a>' % (_url(code, board, look, k, **dict(keep, dates=None)), 'aria-current="true"' if k == rng else '', n) for k, n in RANGE_NAMES)
     lopts = ''.join('<a href="%s" %s>%s</a>' % (_url(code, board, k, rng, **keep), 'aria-current="true"' if k == look else '', n) for k, n in LOOK_NAMES)
     head = ''
     if not bare:
         head = ('<header class="top"><div class="bar"><div class="brand">%s Leaderboards<small>%s to %s, %d</small></div><nav class="tabs" aria-label="Boards">%s</nav></div></header>'
                 % (_X(res), P._md(f), P._md(t), t.year, nav))
-    opts = '' if bare else ('<div class="opts"><div><label>Dates</label><div class="seg" role="group" aria-label="Dates">%s</div></div><div><label>Look</label><div class="seg" role="group" aria-label="Look">%s</div></div></div>' % (ropts, lopts))
+    lo, hi = P.data_range(store)
+    hidden = ''.join('<input type="hidden" name="%s" value="%s">' % (k, _X(str(v))) for k, v in (('code', code), ('board', board), ('look', look), ('bare', '1' if bare else ''), ('sort', sort if sort != 'pts' else ''),
+                                                                                       ('grade', grade if grade != 'All' else ''), ('min', '' if minimum is None else minimum)) if v != '')
+    form = ('<form method="get" action="/api/residency/live" class="dates">%s<label for="df">From</label><input id="df" type="date" name="from" value="%s" min="%s" max="%s" required>'
+            '<label for="dt">To</label><input id="dt" type="date" name="to" value="%s" min="%s" max="%s" required><button type="submit">Show</button></form>'
+            % (hidden, d_from, _X(lo or ''), _X(hi or ''), d_to, _X(lo or ''), _X(hi or '')))
+    opts = '' if bare else ('<div class="opts"><div><label>Dates</label><div class="seg" role="group" aria-label="Dates">%s</div></div><div>%s</div><div><label>Look</label><div class="seg" role="group" aria-label="Look">%s</div></div></div>' % (ropts, form, lopts))
     foot = '' if bare else '<div class="foot">Numbers come straight from the race database and update on their own. Data through %s.</div>' % _X(P._md(t))
     return ('<!doctype html><html lang="en" data-look="%s"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'
             '<title>%s %s</title>%s<style>%s%s%s</style></head><body>%s<main class="site">%s%s%s</main>%s</body></html>'

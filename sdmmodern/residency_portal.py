@@ -551,7 +551,72 @@ def _write_json(path, obj):
     os.replace(tmp, path)
 
 
+ALL_CODE = 'all'
+
+
+def list_codes(store):
+    """Every saved roster: code, name, member and stable counts, and whether it is public. The virtual 'all' folder is skipped."""
+    root = os.path.dirname(_dir(store, 'xx'))
+    out = []
+    try:
+        names = sorted(os.listdir(root))
+    except OSError:
+        names = []
+    for n in names:
+        if n == ALL_CODE or not RS.CODE_RE.match(n):
+            continue
+        r = RS.load(os.path.join(root, n))
+        if r:
+            c = r.get('counts') or {}
+            out.append(dict(code=n, name=r.get('residency') or n.upper(), members=c.get('members', len(r.get('members', []))),
+                            stables=c.get('stables', len(r.get('stables', []))), public=bool(get_public(store, n))))
+    out.sort(key=lambda x: x['name'].lower())
+    return out
+
+
+def merged_roster(store):
+    """All members of all saved rosters as one roster. A member in two rosters becomes one member; stables are de-duplicated."""
+    rosters = [RS.load(_dir(store, c['code'])) for c in list_codes(store)]
+    rosters = [r for r in rosters if r]
+    if not rosters:
+        raise PortalError('No rosters are saved yet.', 404)
+    members, flat, seen = {}, [], set()
+    for r in rosters:
+        for m in r.get('members', []):
+            mm = members.setdefault(m['key'], dict(name=m['name'], key=m['key'], masters={}))
+            for x in m.get('masters', []):
+                xm = mm['masters'].setdefault(x['key'], dict(name=x['name'], key=x['key'], stables=[], _k=set()))
+                for st in x.get('stables', []):
+                    k = (st['key'], st.get('joined'), st.get('left'))
+                    if k not in xm['_k']:
+                        xm['_k'].add(k)
+                        xm['stables'].append(st)
+        for st in r.get('stables', []):
+            k = (st['key'], st.get('member_key'), st.get('joined'), st.get('left'))
+            if k not in seen:
+                seen.add(k)
+                flat.append(st)
+    out = [dict(name=m['name'], key=m['key'], masters=[dict(name=x['name'], key=x['key'], stables=x['stables']) for x in sorted(m['masters'].values(), key=lambda x: x['key'])])
+           for m in sorted(members.values(), key=lambda m: m['key'])]
+    counts = dict(members=len(out), masters=sum(len(m['masters']) for m in out), stables=len(flat), errors=0, warnings=0)
+    return dict(format=rosters[0].get('format'), code=ALL_CODE, residency='All residencies', contact='', ok=True, counts=counts,
+                problems=dict(errors=[], warnings=[]), members=out, stables=flat, source=None)
+
+
+def roster_mtime(store, code):
+    codes = [c['code'] for c in list_codes(store)] if code == ALL_CODE else [code]
+    best = 0
+    for c in codes:
+        try:
+            best = max(best, os.path.getmtime(os.path.join(_dir(store, c), 'roster.json')))
+        except OSError:
+            pass
+    return best
+
+
 def load_roster(store, code):
+    if _code(code) == ALL_CODE:
+        return merged_roster(store)
     r = RS.load(_dir(store, _code(code)))
     if not r:
         raise PortalError('No roster is saved for "%s". Upload one first.' % code, 404)
@@ -617,7 +682,7 @@ def _check_read(store, headers, code):
 
 def roster_view(roster):
     return dict(code=roster['code'], residency=roster.get('residency', ''), built=roster.get('built'), counts=roster['counts'],
-                source=roster.get('source', {}).get('file', ''),
+                source=(roster.get('source') or {}).get('file', ''),
                 members=[dict(name=m['name'], masters=[dict(name=x['name'], stables=len(x['stables'])) for x in m['masters']]) for m in roster['members']])
 
 
@@ -636,6 +701,8 @@ def upload(store, headers, body):
         raise PortalError('Request refused.', 403)
     a = _body(body)
     code = _code(a.get('code'))
+    if code == ALL_CODE:
+        raise PortalError('"all" is a reserved name for every roster together. Pick another code.')
     admin = _check_write(store, headers, code)
     try:
         data = base64.b64decode(a.get('data') or '', validate=True)
@@ -923,6 +990,28 @@ def live_range(store, rng):
     return f.isoformat(), t.isoformat()
 
 
+MAX_LIVE_DAYS = 400
+
+
+def live_custom(store, f, t):
+    """Dates a visitor picked. Both must be real dates; they are kept inside the days the database has and at most 400 days apart."""
+    lo, hi = data_range(store)
+    if not hi:
+        raise PortalError('No race data is loaded yet.', 404)
+    try:
+        a = datetime.date.fromisoformat(f) if f else datetime.date.fromisoformat(lo or hi)
+        b = datetime.date.fromisoformat(t) if t else datetime.date.fromisoformat(hi)
+    except ValueError:
+        raise PortalError('Not found.', 404)
+    if len(f) not in (0, 10) or len(t) not in (0, 10):
+        raise PortalError('Not found.', 404)
+    a = max(a, datetime.date.fromisoformat(lo)) if lo else a
+    b = min(b, datetime.date.fromisoformat(hi))
+    if b < a or (b - a).days + 1 > MAX_LIVE_DAYS:
+        raise PortalError('Not found.', 404)
+    return a.isoformat(), b.isoformat()
+
+
 def live_page(store, q):
     """A public board page. 404 unless the admin switched this residency on. Cached for a few minutes."""
     try:
@@ -953,10 +1042,15 @@ def live_page(store, q):
     rng = q.get('range') or pub['range']
     if board not in PUBLIC_BOARDS or skin not in SKINS or rng not in PUBLIC_RANGES:
         raise PortalError('Not found.', 404)
-    d_from, d_to = live_range(store, rng)
+    cf, ct = q.get('from') or '', q.get('to') or ''
+    if cf or ct:
+        d_from, d_to = live_custom(store, cf, ct)
+        rng = 'custom'
+    else:
+        d_from, d_to = live_range(store, rng)
     dd = _dir(store, code)
     mt = lambda n: os.path.getmtime(os.path.join(dd, n)) if os.path.isfile(os.path.join(dd, n)) else 0
-    key = (code, board, skin, look, sort, grade, minimum, bare, d_from, d_to, mt('roster.json'), mt('rules.json'))
+    key = (code, board, skin, look, sort, grade, minimum, bare, d_from, d_to, roster_mtime(store, code), mt('rules.json'))
     now = time.time()
     with _live_lock:
         hit = _live_cache.get(key)
@@ -1018,6 +1112,13 @@ def route(app, method, path, q, headers, body=b''):
                 if path == '/api/residency/status':
                     lo, hi = data_range(st)
                     return j(dict(can_write=can_write(), needs_key=_hosted(), first_date=lo, last_date=hi))
+                if path == '/api/residency/list':
+                    if _hosted():
+                        if not headers.get('X-Residency-Key'):
+                            raise PortalError('Enter the admin key to see the residencies.', 403)
+                        _admin_ok(headers)
+                    lst = list_codes(st)
+                    return j(dict(residencies=lst, all=dict(members=len(merged_roster(st)['members']) if lst else 0, stables=sum(x['stables'] for x in lst))))
                 if path == '/api/residency/roster':
                     code = _code(q.get('code'))
                     return j(dict(roster=roster_view(load_roster(st, code)), rule=load_rule(st, code), public=get_public(st, code)))

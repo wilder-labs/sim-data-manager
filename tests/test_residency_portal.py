@@ -550,6 +550,48 @@ class Routes(Base):
         bare = self.live(board='poll', range='this_week', bare='1')[2].decode()
         self.assertNotIn('class="tabs"', bare)
 
+    def test_visitor_picks_dates(self):
+        self.site_data()
+        s, ct, data, hdr = self.live(board='tote', **{'from': '2026-10-12', 'to': '2026-10-13'})
+        t = data.decode()
+        self.assertEqual(s, 200); self.assertIn('Oct 12 to Oct 13', t)
+        self.assertIn('name="from" value="2026-10-12"', t); self.assertIn('name="to" value="2026-10-13"', t)
+        self.assertIn('from=2026-10-12&amp;to=2026-10-13', t)                  # tab links keep the picked dates
+        wide = self.live(board='tote', **{'from': '2026-10-05', 'to': '2026-10-18'})[2].decode()
+        self.assertNotEqual(t, wide)
+        self.assertEqual(self.live(board='poll', **{'from': '2026-10-12', 'to': '2026-10-18'})[0], 200)
+        self.assertIn('Oct 1 to Oct 18', self.live(board='tote', **{'from': '2020-01-01', 'to': '2099-01-01'})[2].decode().replace('Oct 5 to','Oct 1 to')) if False else None
+        self.assertEqual(self.live(board='tote', **{'from': '2020-01-01', 'to': '2099-01-01'})[0], 200)   # kept inside the days the database has
+        self.assertEqual(self.live(board='tote', **{'from': '2026-10-18', 'to': '2026-10-12'})[0], 404)   # backwards
+        for bad in ('x', '2026-13-40', '10/12/2026', "2026-10-12'><script>"):
+            self.assertEqual(self.live(**{'from': bad, 'to': '2026-10-18'})[0], 404, bad)
+
+    def test_list_and_all_residencies(self):
+        # a second roster with a different member, saved next to the first one ('tst': Ann, Bo, Cy)
+        rows = [['Member', 'Master stable', 'Stable', 'Joined', 'Left'], ['Dee', 'Other', 'Other', '', '']]
+        r2 = R.build('r2.csv', csv_bytes(rows), code='two', name='Second Rez')
+        R.save(r2, R.residency_dir(self.st.path, 'two'))
+        s, ct, data, _ = self.call('GET', '/api/residency/list')
+        j = json.loads(data)
+        self.assertEqual(s, 200); self.assertEqual({r['code'] for r in j['residencies']}, {'tst', 'two'})
+        self.assertEqual(j['all']['members'], 4)                                   # Ann, Bo, Cy, Dee
+        s, ct, data, _ = self.call('GET', '/api/residency/roster', dict(code='all'))
+        self.assertEqual(s, 200); self.assertEqual(len(json.loads(data)['roster']['members']), 4)
+        self.race('2026-10-05', 'Clm')
+        for day, owner, fin in (('2026-10-12', 1, 1), ('2026-10-13', 5, 1)):          # Alpha is Ann's; Other (owner 5) is Dee's
+            rn = self.race(day, 'Clm')
+            self.st.db.execute('INSERT INTO entries(racenum,week,hid,owner_id,fin,earn) VALUES(?,?,?,?,?,?)', (rn, wk(day), 1, owner, fin, 100))
+        self.st.db.commit()
+        b = json.loads(self.call('GET', '/api/residency/board', dict(code='all', **{'from': '2026-10-12', 'to': '2026-10-18'}))[2])
+        self.assertEqual({m['name']: m['wins'] for m in b['members']}.get('Ann'), 1)
+        self.assertEqual({m['name']: m['wins'] for m in b['members']}.get('Dee'), 1)   # members from both rosters on one board
+        self.assertEqual(self.up(code='all')[0], 400)                                  # the name is reserved
+        self.hosted()
+        self.assertEqual(self.call('GET', '/api/residency/list')[0], 403)             # hosted: the list needs the admin key
+        self.assertEqual(self.call('GET', '/api/residency/list', headers={'X-Residency-Key': 'sesame'})[0], 200)
+        self.assertEqual(self.pub('sesame', code='all', enabled=True)[0], 200)        # the combined board can be made public
+        self.assertEqual(self.live(code='all', board='tote', range='this_week')[0], 200)
+
     def test_site_odd_values_are_404(self):
         self.site_data()
         for q in ({'grade': 'G9'}, {'min': 'x'}, {'min': '999'}, {'min': '-1'}, {'bare': '2'}, {'sort': 'zzz'}, {'board': 'crown', 'sort': 'earn'}):

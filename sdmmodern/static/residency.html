@@ -1,49 +1,65 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Residency Leaderboards</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
 <style>
-:root{--bg:#f5f4f0;--panel:#fff;--ink:#1d2430;--mute:#667085;--line:#e1ded6;--accent:#1f6f5c;--hi:#e8f3ef;--good:#1a7f4b;--bad:#b42318;--warn:#a15c00}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14181f;--panel:#1c222c;--ink:#e6e9ee;--mute:#9aa4b2;--line:#2c3441;--accent:#4fb69a;--hi:#1f3a33;--good:#4cc38a;--bad:#f97066;--warn:#f0b24b}}
-:root[data-theme=dark]{--bg:#14181f;--panel:#1c222c;--ink:#e6e9ee;--mute:#9aa4b2;--line:#2c3441;--accent:#4fb69a;--hi:#1f3a33;--good:#4cc38a;--bad:#f97066;--warn:#f0b24b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{display:flex;gap:12px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);}
-header h1{font-size:18px;margin:0;flex:1}
-main{max-width:1180px;margin:0 auto;padding:16px 20px 60px;display:grid;gap:16px}
-section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
-section h2{font-size:15px;margin:0 0 10px}
-label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
-input,select,button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
-button{cursor:pointer}button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
-button:disabled{opacity:.5;cursor:default}
-button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
-.pts{display:grid;grid-template-columns:repeat(7,64px);gap:8px}.pts input,.bon input{width:100%;text-align:right}
-.bon{display:grid;grid-template-columns:repeat(4,80px);gap:8px}
-.mute{color:var(--mute);font-size:13px}.err{color:var(--bad)}.ok{color:var(--good)}.warn{color:var(--warn)}
-table{border-collapse:collapse;width:100%}th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
-th{font-size:12px;color:var(--mute);font-weight:600;background:var(--panel)}
+:root{--bg:#e9eeec;--panel:#fff;--panel2:#f4f7f6;--ink:#10211b;--mute:#566a62;--line:#d3dcd8;--accent:#14573f;--accent-ink:#fff;--hi:#eaf2ee;--good:#1a7f4b;--bad:#b42318;--warn:#9a6200;
+--disp:"Barlow Condensed","Arial Narrow",Arial,sans-serif;--body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0a1310;--panel:#111e19;--panel2:#16271f;--ink:#e9f0eb;--mute:#8ea69b;--line:#233830;--accent:#ffb020;--accent-ink:#1a1200;--hi:#1a2d25;--good:#4cc38a;--bad:#f0675a;--warn:#f0b24b;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0a1310;--panel:#111e19;--panel2:#16271f;--ink:#e9f0eb;--mute:#8ea69b;--line:#233830;--accent:#ffb020;--accent-ink:#1a1200;--hi:#1a2d25;--good:#4cc38a;--bad:#f0675a;--warn:#f0b24b;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+header{display:flex;gap:14px;align-items:center;padding:14px max(20px,env(safe-area-inset-left,0px));background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font:700 28px/1 var(--disp);text-transform:uppercase;letter-spacing:.05em;margin:0;flex:1}
+header label{display:flex;align-items:center;gap:8px;margin:0}
+main{max-width:1100px;margin:0 auto;padding:20px max(20px,env(safe-area-inset-left,0px)) 70px;display:grid;gap:18px;counter-reset:step}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px 20px}
+section h2{display:flex;align-items:center;gap:12px;font:700 24px/1 var(--disp);text-transform:uppercase;letter-spacing:.05em;margin:0 0 14px}
+section h2 .stepn{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:700 17px/1 var(--disp);letter-spacing:0}
+section>.mute:first-of-type{max-width:80ch}
+label{display:block;font:600 12px var(--disp);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+input,select,button{font:500 15px var(--body);color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:38px}
+input:hover,select:hover{border-color:var(--mute)}
+input[type=file]{padding:6px 10px;background:var(--panel)}
+button{cursor:pointer;background:var(--panel);font-weight:600;transition:background .12s,border-color .12s}
+button:hover:not(:disabled){border-color:var(--accent);background:var(--hi)}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}button.pri:hover:not(:disabled){filter:brightness(1.08);background:var(--accent)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.pts{display:grid;grid-template-columns:repeat(7,72px);gap:10px}.pts input,.bon input{width:100%;text-align:right;font-variant-numeric:tabular-nums}
+.bon{display:grid;grid-template-columns:repeat(4,88px);gap:10px}
+.mute{color:var(--mute);font-size:13.5px}.err{color:var(--bad)}.ok{color:var(--good)}.warn{color:var(--warn)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line)}
+th{font:600 13px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);background:var(--panel2);white-space:nowrap}
+td{font:500 16px var(--body)}
 th:first-child,td:first-child,th.l,td.l{text-align:left}th+th,td+td{border-left:1px solid var(--line)}
-tr.m{cursor:pointer}tr.m:hover{background:var(--hi)}tr.sub td{font-size:13px;color:var(--mute)}tr.sub td.l{padding-left:26px}tr.sub2 td.l{padding-left:46px}
-td.tot{font-weight:700}.rk{width:44px}.tie{font-size:11px;color:var(--mute)}
-.pill{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 7px;margin-left:6px;color:var(--mute)}
+tr:last-child td{border-bottom:0}
+tr.m{cursor:pointer}tr.m:hover{background:var(--hi)}tr.sub td{font-size:13px;color:var(--mute)}tr.sub td.l{padding-left:28px}tr.sub2 td.l{padding-left:48px}
+td.tot{font:700 20px var(--disp);color:var(--accent)}.rk{width:48px;font:700 22px var(--disp);color:var(--accent)}.tie{font-size:11px;color:var(--mute)}
+.pill{display:inline-block;font:600 11px var(--disp);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);border-radius:10px;padding:0 8px;margin-left:6px;color:var(--mute)}
 ul.list{margin:6px 0 0 18px;padding:0}
-.tablewrap{overflow-x:auto}
-.poll{display:grid;gap:14px}.pb{border:1px solid var(--line);border-radius:8px;overflow:hidden}.pb h3{margin:0;padding:10px 14px;background:var(--hi);font-size:15px}
-.pr{display:grid;grid-template-columns:54px minmax(0,1fr) 78px;gap:4px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}.pr:hover{background:var(--hi)}
-.pr .n{font-size:30px;font-weight:700;text-align:center;line-height:1;color:var(--accent)}.pr .mv{display:block;font-size:11px;font-weight:700;text-align:center}
-.pr .nm{font-weight:700;font-size:16px}.pr .rec{color:var(--mute);font-size:12px}.pr .rt{text-align:right;font-weight:700;font-size:22px}.pr .rt small{display:block;font-size:10px;color:var(--mute);font-weight:400}
-.parts{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px 14px;padding:4px 0 2px 66px}.parts div{font-size:11px;color:var(--mute);display:flex;justify-content:space-between}
-.meter{grid-column:1/-1;height:5px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:-3px}.meter i{display:block;height:100%;background:var(--accent)}
-.alsov{padding:8px 14px;font-size:12px;color:var(--mute);border-top:1px solid var(--line)}
+.poll{display:grid;gap:16px}.pb{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.pb h3{margin:0;padding:12px 16px;background:var(--panel2);font:700 20px var(--disp);text-transform:uppercase;letter-spacing:.05em}
+.pr{display:grid;grid-template-columns:60px minmax(0,1fr) 90px;gap:4px 14px;align-items:center;padding:12px 16px;border-top:1px solid var(--line);cursor:pointer}.pr:hover{background:var(--hi)}
+.pr .n{font:700 40px/1 var(--disp);text-align:center;color:var(--accent)}.pr .mv{display:block;font:700 13px var(--disp);text-align:center;letter-spacing:.06em}
+.pr .nm{font:700 22px var(--disp);text-transform:uppercase;letter-spacing:.03em}.pr .rec{color:var(--mute);font-size:13px}
+.pr .rt{text-align:right;font:700 28px var(--disp)}.pr .rt small{display:block;font:600 10px var(--disp);letter-spacing:.14em;color:var(--mute)}
+.parts{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px 16px;padding:4px 0 2px 74px}.parts div{font:600 11px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);display:flex;justify-content:space-between}
+.meter{grid-column:1/-1;height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:-3px}.meter i{display:block;height:100%;background:var(--accent)}
+.alsov{padding:10px 16px;font-size:13px;color:var(--mute);border-top:1px solid var(--line)}
 #prev{width:100%;height:520px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-top:10px}
-@media(max-width:700px){.pts{grid-template-columns:repeat(4,64px)}}
+a{color:var(--accent)}
+@media(max-width:700px){.pts{grid-template-columns:repeat(4,72px)}.bon{grid-template-columns:repeat(2,88px)}.pr{grid-template-columns:48px minmax(0,1fr)}.pr .rt{grid-column:2;text-align:left}.parts{padding-left:0}header h1{font-size:22px}}
 </style></head><body>
 <header><h1>Residency Leaderboards</h1>
 <button id="closeres" hidden>Close</button>
 <label style="margin:0">Theme <select id="theme"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></label></header>
 <main>
-<section id="s-code"><h2>1. Residency</h2>
-<div class="row"><div><label for="code">Residency code (letters, numbers, dashes)</label><input id="code" maxlength="24" placeholder="nwrc" autocomplete="off"></div>
+<section id="s-code"><h2><span class="stepn">1</span>Residency</h2>
+<div class="row"><div id="pickbox"><label for="code">Residency</label><select id="code" style="min-width:300px"><option value="">Loading…</option></select></div>
+<div id="newbox" hidden><label for="codein">Residency code (letters, numbers, dashes)</label><input id="codein" maxlength="24" placeholder="nwrc" autocomplete="off"></div>
 <div id="keybox" hidden><label for="key">Admin key</label><input id="key" type="password" autocomplete="off" style="width:240px" placeholder="the site admin key"></div>
 <button id="load">Open</button><span id="rmsg" class="mute"></span></div>
 <div id="rosterhint" class="mute" style="margin-top:6px">To add or replace a roster, use <b>Data &rarr; Add a Residency Roster</b> in the top menu.</div>
@@ -58,7 +74,7 @@ ul.list{margin:6px 0 0 18px;padding:0}
 <button id="up" class="pri">Upload</button><button id="upany" hidden>Save anyway</button></div>
 <div id="upmsg" style="margin-top:8px"></div></section>
 
-<section><h2>3. Dates</h2>
+<section><h2><span class="stepn">2</span>Dates</h2>
 <div class="row">
 <div><label for="pre">Quick pick</label><select id="pre"><option value="lw">Latest full week</option><option value="pw">Week before that</option><option value="mtd">Month to date</option><option value="ytd">Year to date</option><option value="cu">Custom</option></select></div>
 <div><label for="from">From</label><input id="from" type="date"></div>
@@ -66,7 +82,7 @@ ul.list{margin:6px 0 0 18px;padding:0}
 <span id="drange" class="mute"></span></div>
 <div class="mute" style="margin-top:6px">Weeks run Monday to Sunday. Month and year use the calendar.</div></section>
 
-<section><h2>4. Scoring</h2>
+<section><h2><span class="stepn">3</span>Scoring</h2>
 <label>Points for each finish</label>
 <div class="pts" id="pts"></div>
 <div class="row" style="margin-top:12px"><div><label>Stakes bonus points</label>
@@ -82,27 +98,20 @@ ul.list{margin:6px 0 0 18px;padding:0}
 <button id="saver" hidden>Save as this residency's rules</button></div>
 <div id="rulemsg" class="mute" style="margin-top:6px"></div></section>
 
-<section><h2>5. Leaderboard</h2>
+<section><h2><span class="stepn">4</span>Leaderboard</h2>
 <div class="row"><button id="go" class="pri" disabled>Build leaderboard</button>
 <button id="d-m" disabled>Download standings (CSV)</button><button id="d-s" disabled>Download by stable (CSV)</button><button id="d-f" disabled title="How many 1st, 2nd, 3rd ... 7th and 8th-or-worse finishes each stable had. No points.">Download finish counts (CSV)</button><button id="d-fm" disabled title="The same finish counts added up per member.">Finish counts by member (CSV)</button><button id="d-j" disabled>Download JSON</button></div>
 <div id="bmsg" class="mute" style="margin:8px 0"></div>
 <div class="tablewrap"><table id="tbl" hidden><thead><tr><th class="rk">#</th><th class="l">Member</th><th>Starts</th><th>1st</th><th>2nd</th><th>3rd</th><th>Place pts</th><th>Bonus</th><th>Total</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div id="bnote"></div></section>
 
-<section id="s-poll"><h2>6. Polls</h2>
+<section id="s-poll"><h2><span class="stepn">5</span>Polls</h2>
 <div class="mute">Rankings for the dates picked above. Each member is rated from wins, in-the-money rate, finish quality, races run and recent form (the Top 10 also counts stakes and graded results). Small samples are pulled toward the average. Arrows compare with the same number of days just before.</div>
 <div class="row" style="margin-top:8px"><button id="bp" class="pri" disabled>Build polls</button><button id="d-pc" disabled>Claiming poll (CSV)</button><button id="d-po" disabled>Top 10 poll (CSV)</button></div>
 <div id="pmsg" class="mute" style="margin:8px 0"></div><div id="polls" class="poll"></div></section>
 
-<section id="s-emb"><h2>7. Put a board on a website</h2>
-<div class="mute">Makes a snapshot of one board as a block of HTML with its own styling and no scripts. Paste it into a Code module, a WordPress Custom HTML block, or any page that accepts HTML. It shows the numbers as of the moment you make it. Make a new one after each update.</div>
-<div class="row" style="margin-top:8px"><div><label for="eb">Board</label><select id="eb"><option value="claiming">Claiming trainer poll</option><option value="overall">Top 10 poll</option><option value="standings">Standings</option></select></div>
-<div><label for="es">Look</label><select id="es"><option value="plain">Plain</option></select></div>
-<button id="e-pv" disabled>Preview</button><button id="e-dl" disabled>Download HTML</button><button id="e-cp" disabled>Copy the code</button></div>
-<div id="emsg" class="mute" style="margin-top:8px"></div><iframe id="prev" title="Preview" sandbox hidden></iframe></section>
-
-<section id="s-pub" hidden><h2>8. Public site</h2>
-<div class="mute">A public site is one link with seven tabs across the top (The Tote, Claiming Poll, Top 10 Poll, Stakes Room, Claiming Crown, Member Cards, Week in the Books). Visitors pick the dates and the look on the page. It opens on the newest finished week and updates by itself as new races load (it can be up to 5 minutes behind). Only the board is public: no roster file, no stables list, no downloads. Only the site admin key can switch this on.</div>
+<section id="s-pub" hidden><h2><span class="stepn">6</span>Rez Leaderboards</h2>
+<div class="mute">Rez Leaderboards is one public link with seven tabs across the top (The Tote, Claiming Poll, Top 10 Poll, Stakes Room, Claiming Crown, Member Cards, Week in the Books). Visitors pick the dates and the look on the page. It opens on the newest finished week and updates by itself as new races load (it can be up to 5 minutes behind). Only the board is public: no roster file, no stables list, no downloads. Only the site admin key can switch this on.</div>
 <div class="row" style="margin-top:8px"><div><label for="pub-on">Public</label><select id="pub-on"><option value="0">Off (private)</option><option value="1">On (anyone with the link)</option></select></div>
 <div><label for="pub-r">Dates shown</label><select id="pub-r"><option value="latest">Newest finished week (Mon&ndash;Sun)</option><option value="this_week">This week so far</option><option value="last_4">Last 4 weeks</option><option value="season">This year so far</option></select></div>
 <div><label for="pub-l">Look</label><select id="pub-l"><option value="auto">Auto (follows the visitor)</option><option value="dark">Dark</option><option value="light">Light</option><option value="paper">Paper</option></select></div><select id="pub-s" hidden><option value="plain">Plain</option></select>
@@ -157,14 +166,21 @@ function dl(url){if(!st.needs_key){location.href=url;return}
   var cd=r.headers.get('Content-Disposition')||'',m=/filename="([^"]+)"/.exec(cd),name=m?m[1]:'download';
   return r.blob().then(function(b){var a=document.createElement('a'),u=URL.createObjectURL(b);a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(u);a.remove()},500)})
  }).catch(function(e){$('rmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
-function code(){return $('code').value.trim().toLowerCase()}
+function code(){return (ROSTER_VIEW?$('codein').value:$('code').value).trim().toLowerCase()}
 function init(){api('/api/residency/status').then(function(s){
  st.can_write=s.can_write;st.needs_key=s.needs_key;st.first=s.first_date;st.last=s.last_date;
  $('s-up').hidden=!ROSTER_VIEW||(!s.can_write&&!s.needs_key);$('keybox').hidden=!s.needs_key;$('keyhint').hidden=!s.needs_key;$('saver').hidden=!s.can_write;
  if(!s.can_write&&s.needs_key){$('s-up').hidden=true}
  if(s.first_date){$('drange').textContent='Data covers '+s.first_date+' to '+s.last_date;$('from').min=$('to').min=s.first_date;$('from').max=$('to').max=s.last_date}
- preset();var c=ls('sdm_res_code');if(c){$('code').value=c;openRes()}
+ preset();if(!ROSTER_VIEW)loadList(true)
  }).catch(function(e){$('rmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
+function loadList(first){return api('/api/residency/list').then(function(j){var sel=$('code'),keep=first?(ls('sdm_res_code')||''):sel.value;
+  var h='<option value="">Choose a residency…</option>';
+  if(j.residencies.length)h+='<option value="all">All residencies ('+j.all.members+' members in '+j.residencies.length+(j.residencies.length===1?' roster':' rosters')+')</option>';
+  j.residencies.forEach(function(r){h+='<option value="'+esc(r.code)+'">'+esc(r.name||r.code)+' ('+r.members+' members)'+(r.public?' · public':'')+'</option>'});
+  sel.innerHTML=h;if(keep&&sel.querySelector('option[value="'+keep.replace(/[^a-z0-9-]/g,'')+'"]')){sel.value=keep;openRes()}
+  if(!j.residencies.length)$('rmsg').innerHTML='<span class="warn">No rosters yet. Use Data &rarr; Add a Residency Roster.</span>'
+ }).catch(function(e){$('code').innerHTML='<option value="">'+(st.needs_key?'Enter the admin key, then press Open':'Could not load')+'</option>';$('rmsg').innerHTML='<span class="warn">'+esc(e.message)+'</span>'})}
 function openRes(){var c=code();if(!c)return;$('rmsg').textContent='';
  api('/api/residency/roster?code='+encodeURIComponent(c)).then(function(j){
   st.roster=j.roster;ls('sdm_res_code',c);setRule(j.rule);showRoster();enable(true);$('s-pub').hidden=!st.needs_key;$('pub-save').disabled=false;pubShow(j.public)
@@ -172,8 +188,8 @@ function openRes(){var c=code();if(!c)return;$('rmsg').textContent='';
   $('rmsg').innerHTML='<span class="warn">'+esc(e.message)+'</span>'})}
 function showRoster(){var r=st.roster,n=r.counts||{};
  $('rsum').innerHTML='<b>'+esc(r.residency||r.code)+'</b>: '+esc(n.members)+' members, '+esc(n.masters)+' master stables, '+esc(n.stables)+' stables'+(r.source?' (from '+esc(r.source)+')':'')}
-function enable(on){['go','bp','e-pv','e-dl','e-cp'].forEach(function(i){$(i).disabled=!on});['d-pc','d-po'].forEach(function(i){$(i).disabled=true});['d-m','d-s','d-f','d-fm','d-j'].forEach(function(i){$(i).disabled=true})}
-$('load').onclick=openRes;$('code').onkeydown=function(e){if(e.key==='Enter')openRes()};
+function enable(on){['go','bp'].forEach(function(i){$(i).disabled=!on});['d-pc','d-po'].forEach(function(i){$(i).disabled=true});['d-m','d-s','d-f','d-fm','d-j'].forEach(function(i){$(i).disabled=true})}
+$('load').onclick=function(){if(ROSTER_VIEW)openRes();else loadList(false).then(function(){if(code())openRes()})};$('code').onchange=openRes;$('codein').onkeydown=function(e){if(e.key==='Enter')openRes()};
 /* upload */
 function fileB64(f){return new Promise(function(ok,no){var r=new FileReader();r.onload=function(){var s=String(r.result);ok(s.slice(s.indexOf(',')+1))};r.onerror=no;r.readAsDataURL(f)})}
 function doUpload(any){var f=$('file').files[0];if(!code()){$('upmsg').innerHTML='<span class="err">Enter a residency code first.</span>';return}
@@ -191,7 +207,7 @@ function doUpload(any){var f=$('file').files[0];if(!code()){$('upmsg').innerHTML
   var m=j.match;h+='<div style="margin-top:6px">Database check: '+esc(m.matched)+' of '+esc(m.checked)+' stables found.</div>';
   if(m.unmatched.length)h+='<div class="warn">Not found in the database:</div>'+lst(m.unmatched.map(function(x){return x.stable+' ('+x.member+')'+(x.close&&x.close.length?' — close: '+x.close.join(', '):'')}),'warn');
   if(m.no_races.length)h+='<div class="mute">Found but no races yet: '+esc(m.no_races.slice(0,30).join(', '))+(m.no_races.length>30?'…':'')+'</div>';
-  $('upmsg').innerHTML=h;if(j.saved){st.roster=j.roster;$('code').value=j.roster.code;ls('sdm_res_code',j.roster.code);showRoster();enable(true);openRes()}
+  $('upmsg').innerHTML=h;if(j.saved){st.roster=j.roster;$('codein').value=j.roster.code;ls('sdm_res_code',j.roster.code);showRoster();enable(true);openRes()}
  }).catch(function(e){$('up').disabled=false;$('upmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
 $('up').onclick=function(){doUpload(false)};$('upany').onclick=function(){doUpload(true)};
 $('saver').onclick=function(){post('/api/residency/rules',{code:code(),rule:getRule()}).then(function(){$('rulemsg').innerHTML='<span class="ok">Rules saved.</span>'}).catch(function(e){$('rulemsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
@@ -240,12 +256,6 @@ $('polls').onclick=$('polls').onkeydown=function(e){var r=e.target.closest('.pr'
 $('bp').onclick=function(){$('pmsg').textContent='Working…';api('/api/residency/polls?'+pq()).then(function(d){pdata=d;pOpen={};drawPolls();['d-pc','d-po'].forEach(function(i){$(i).disabled=false});$('pmsg').textContent=d.period.from+' to '+d.period.to+' ('+d.period.days+' days). Compared with '+d.previous.from+' to '+d.previous.to+'. Recent form is '+d.recent.from+' to '+d.recent.to+'.'}).catch(function(e){$('pmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
 $('d-pc').onclick=function(){dl('/api/residency/export?'+qs('&kind=poll_claiming'))};
 $('d-po').onclick=function(){dl('/api/residency/export?'+qs('&kind=poll_overall'))};
-function eq(extra){return pq('&board='+$('eb').value+'&skin='+$('es').value+(extra||''))}
-$('e-pv').onclick=function(){var f=$('prev');$('emsg').textContent='';fetch('/api/residency/embed?'+eq('&view=1'),keyed()).then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error((function(){try{return JSON.parse(t).error}catch(e){return 'Error '+r.status}})());return t})}).then(function(t){f.hidden=false;f.srcdoc=t}).catch(function(e){$('emsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
-$('e-dl').onclick=function(){dl('/api/residency/embed?'+eq())};
-$('e-cp').onclick=function(){fetch('/api/residency/embed?'+eq('&view=1'),keyed()).then(function(r){return r.text()}).then(function(t){
- try{navigator.clipboard.writeText(t).then(function(){$('emsg').innerHTML='<span class="ok">Copied. Paste it into a Code module or a WordPress Custom HTML block.</span>'},function(){fallback(t)})}catch(e){fallback(t)}})};
-function fallback(t){$('emsg').innerHTML='<span class="warn">Copy did not work here. Use Download HTML instead.</span>'}
 
 /* public boards */
 var PUBTABS=[['tote','The Tote'],['poll','Claiming Poll'],['top10','Top 10 Poll'],['stakes','Stakes Room'],['crown','Claiming Crown'],['cards','Member Cards'],['week','Week in the Books']];
@@ -267,8 +277,8 @@ $('pub-save').onclick=function(){$('pubmsg').textContent='Saving…';
  post('/api/residency/public',{code:code(),enabled:$('pub-on').value==='1',range:$('pub-r').value,skin:$('pub-s').value}).then(function(j){pubShow(j.public);$('pubmsg').innerHTML='<span class="ok">Saved. '+(j.public?'This residency\'s boards are public.':'This residency is private again.')+'</span>'}).catch(function(e){$('pubmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
 
 try{var sk=ls(KEYN);if(sk)$('key').value=sk}catch(e){}
-$('key').onchange=function(){ls(KEYN,this.value.trim())};
-if(ROSTER_VIEW){document.querySelector('h1').textContent='Add a residency roster';var mainEl=document.querySelector('main');
+$('key').onchange=function(){ls(KEYN,this.value.trim());if(!ROSTER_VIEW&&st.needs_key)loadList(true)};
+if(ROSTER_VIEW){$('pickbox').hidden=true;$('newbox').hidden=false;document.querySelector('h1').textContent='Add a residency roster';var mainEl=document.querySelector('main');
  Array.prototype.forEach.call(mainEl.children,function(e){if(e.id!=='s-code'&&e.id!=='s-up')e.style.display='none'});$('rosterhint').hidden=true;$('s-code').querySelector('h2').textContent='Residency'}
 init();
 })();
