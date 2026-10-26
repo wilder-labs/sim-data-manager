@@ -471,6 +471,25 @@ class Routes(Base):
         self.race('2026-10-18', 'Clm'); self.st.db.commit()          # a Sunday: that week is finished
         self.assertEqual(P.live_range(self.st, 'latest'), ('2026-10-12', '2026-10-18'))
 
+    def test_week_card_uses_real_numbers_and_escapes(self):
+        self.hosted()
+        # Ann (Alpha) wins on Mon Oct 12 and Tue Oct 13; Bo (Gamma) runs second; earlier week gives the "jump" comparison
+        self.race('2026-10-05', 'Clm')
+        for day, owner, fin in (('2026-10-12', 1, 1), ('2026-10-13', 1, 1), ('2026-10-12', 3, 2), ('2026-10-14', 3, 1)):
+            rn = self.race(day, 'Stk' if day == '2026-10-14' else 'Clm')
+            self.st.db.execute('INSERT INTO entries(racenum,week,hid,owner_id,fin,earn) VALUES(?,?,?,?,?,?)', (rn, wk(day), 1, owner, fin, 1000))
+        self.race('2026-10-18', 'Clm'); self.st.db.commit()
+        self.pub('sesame', enabled=True)
+        s, ct, data, hdr = self.live()                       # default board is the week card
+        self.assertEqual(s, 200)
+        t = data.decode()
+        self.assertIn('Week in<br>the books', t); self.assertIn('Week of Oct 12', t)
+        self.assertIn('<div class="n">1</div><div class="t">Ann</div>', t)
+        self.assertIn('stakes wins', t); self.assertIn('class="tick"', t)
+        self.assertNotIn('<script', t.lower())
+        self.assertIn('fonts.googleapis.com', hdr['Content-Security-Policy'])
+        self.assertEqual(self.live(board='week', range='this_week')[0], 200)
+
     def test_live_rejects_odd_values(self):
         self.hosted(); self.race('2026-10-01', 'Clm'); self.race('2026-10-14', 'Clm'); self.st.db.commit(); self.pub('sesame', enabled=True)
         for q in ({'board': 'x'}, {'skin': 'evil'}, {'range': '../..'}, {'code': '../x'}, {'code': ''}):
@@ -544,6 +563,7 @@ class Safety(unittest.TestCase):
         here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         for f in ('residency_portal.py', os.path.join('static', 'residency.html')):
             t = open(os.path.join(here, 'sdmmodern', f), encoding='utf-8').read().lower()
+            t = t.replace('https://fonts.gstatic.com', '').replace('https://fonts.googleapis.com', '')    # page fonts the browser loads; this code never fetches them
             for bad in ('ehorseracing', 'urllib.request', 'http.client', 'socket', 'requests', 'https://', 'http://'):
                 self.assertNotIn(bad, t, (f, bad))
 

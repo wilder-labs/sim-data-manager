@@ -246,16 +246,16 @@ $('e-cp').onclick=function(){fetch('/api/residency/embed?'+eq('&view=1'),keyed()
 function fallback(t){$('emsg').innerHTML='<span class="warn">Copy did not work here. Use Download HTML instead.</span>'}
 
 /* public boards */
-var PUBH={claiming:620,overall:980,standings:520};
+var PUBH={week:800,claiming:620,overall:980,standings:520},PUBN={week:'Week in the Books (the picture card)',claiming:'Claiming trainer poll',overall:'Top 10 poll',standings:'Standings'};
 function pubShow(p){$('pub-on').value=p?'1':'0';if(p){$('pub-r').value=p.range;$('pub-s').value=p.skin}
- var h='';if(p){['claiming','overall','standings'].forEach(function(b){
+ var h='';if(p){['week','claiming','overall','standings'].forEach(function(b){
   var u=location.origin+'/api/residency/live?code='+encodeURIComponent(code())+'&board='+b;
-  var f='<iframe src="'+u+'" title="'+b+' leaderboard" loading="lazy" style="width:100%;height:'+PUBH[b]+'px;border:0"></iframe>';
-  h+='<div style="margin:8px 0"><b>'+({claiming:'Claiming trainer poll',overall:'Top 10 poll',standings:'Standings'})[b]+'</b><div class="mute" style="word-break:break-all">Link: <a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a></div>'
-   +'<button class="pcopy" data-c="'+esc(f)+'">Copy the embed code</button></div>'})}
+  var f='<iframe src="'+u+'" title="'+PUBN[b]+'" loading="lazy" style="width:100%;height:'+PUBH[b]+'px;border:0"></iframe>';
+  h+='<div style="margin:10px 0;'+(b==='week'?'border:2px solid var(--accent);border-radius:8px;padding:10px':'')+'"><b>'+PUBN[b]+'</b>'+(b==='week'?' <span class="mute">&mdash; the one link to share</span>':'')+'<div class="mute" style="word-break:break-all">Link: <a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a></div>'
+   +'<button class="pcopy" data-c="'+esc(u)+'">Copy the link</button> <button class="pcopy" data-c="'+esc(f)+'">Copy the embed code</button></div>'})}
  $('publinks').innerHTML=h}
 $('publinks').onclick=function(e){var b=e.target.closest('.pcopy');if(!b)return;var t=b.getAttribute('data-c');
- try{navigator.clipboard.writeText(t).then(function(){$('pubmsg').innerHTML='<span class="ok">Copied. In Divi 5 paste it into a Code module; in WordPress use a Custom HTML block. Set the height there if the board looks cut off.</span>'},function(){$('pubmsg').innerHTML='<span class="warn">Copy did not work here.</span>'})}catch(x){$('pubmsg').innerHTML='<span class="warn">Copy did not work here.</span>'}};
+ try{navigator.clipboard.writeText(t).then(function(){$('pubmsg').innerHTML='<span class="ok">Copied. A link opens the page on its own. Embed code goes in a Divi 5 Code module or a WordPress Custom HTML block; set the height there if the board looks cut off.</span>'},function(){$('pubmsg').innerHTML='<span class="warn">Copy did not work here.</span>'})}catch(x){$('pubmsg').innerHTML='<span class="warn">Copy did not work here.</span>'}};
 $('pub-save').onclick=function(){$('pubmsg').textContent='Saving…';
  post('/api/residency/public',{code:code(),enabled:$('pub-on').value==='1',range:$('pub-r').value,skin:$('pub-s').value}).then(function(j){pubShow(j.public);$('pubmsg').innerHTML='<span class="ok">Saved. '+(j.public?'This residency\'s boards are public.':'This residency is private again.')+'</span>'}).catch(function(e){$('pubmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
 

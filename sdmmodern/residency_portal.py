@@ -676,9 +676,90 @@ def save_rules(store, headers, body):
     return dict(saved=True, rule=rule)
 
 
+# ---------------------------------------------------------------- the weekly picture card (one link, real numbers)
+WEEK_COLORS = ('#c8362b', '#2a5bd7', '#1f8a5b', '#d98a00', '#7b4fc4', '#0e8fa0', '#c2417d', '#6b7d2a', '#a35a2a', '#4a6fa5', '#8a8f98', '#b8860b')
+FONTS_LINK = ('<link rel="preconnect" href="' + 'https://fonts.gstatic.com" crossorigin>'
+              '<link rel="stylesheet" href="' + 'https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">')
+WEEK_CSS = (
+    ':root{--disp:"Barlow Condensed","Arial Narrow",Arial,sans-serif;--body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif}'
+    'html,body{margin:0;background:#0a1310}body{padding:14px;font-family:var(--body)}'
+    '.wk{max-width:540px;margin:0 auto}'
+    '.card{width:100%;aspect-ratio:4/5;background:linear-gradient(165deg,#0d2a21,#08150f 70%);color:#eef5ef;border-radius:6px;padding:7% 7% 6%;display:flex;flex-direction:column;position:relative;overflow:hidden;container-type:inline-size;border:1px solid #1d3a30;box-sizing:border-box}'
+    '.card .k{font:600 3cqw var(--disp);letter-spacing:.2em;text-transform:uppercase;color:#ffb020}'
+    '.card h2{font:700 12cqw/.9 var(--disp);text-transform:uppercase;letter-spacing:.05em;margin:2cqw 0 3cqw;color:#fff}'
+    '.pod{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:2.5cqw;align-items:end;margin-top:auto}'
+    '.pod>div{border-radius:4px 4px 0 0;padding:3cqw 2cqw;text-align:center;background:#143528;border-top:1.2cqw solid var(--c)}'
+    '.pod .n{font:700 9cqw/1 var(--disp);color:var(--c)}.pod .t{font:600 4.6cqw var(--disp);text-transform:uppercase;letter-spacing:.03em;margin-top:1cqw;overflow-wrap:anywhere}'
+    '.pod .s{font:500 3.2cqw var(--body);color:#9fb7ab}.pod>.p1{padding-block:6cqw 4cqw}'
+    '.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5cqw;margin:4cqw 0 3cqw}'
+    '.stats>div{border-top:1px solid #2b4a3d;padding-top:2cqw}.stats b{display:block;font:700 7cqw/1 var(--disp);color:#ffb020;overflow-wrap:anywhere}'
+    '.stats span{font:400 3cqw var(--body);color:#9fb7ab}'
+    '.card .ft{font:500 2.8cqw var(--body);color:#7e9a8c;display:flex;justify-content:space-between;gap:2cqw}'
+    '.tick{margin-top:18px;overflow:hidden;white-space:nowrap;background:#08150f;color:#eef5ef;border-radius:4px;border:1px solid #1d3a30;font:600 17px var(--disp);letter-spacing:.06em;text-transform:uppercase}'
+    '.tick div{display:inline-block;padding:10px 0;animation:tk 38s linear infinite}.tick span{margin:0 22px}.tick em{font-style:normal;color:#ffb020;margin-right:6px}'
+    '@keyframes tk{from{transform:translateX(0)}to{transform:translateX(-50%)}}'
+    '@media (prefers-reduced-motion:reduce){.tick div{animation:none}.tick{overflow-x:auto}}'
+    '.empty{font:500 4cqw var(--body);color:#9fb7ab;margin:auto 0}')
+
+
+def _md(d):
+    return d.strftime('%b ') + str(d.day)
+
+
+def week_page(store, roster, d_from, d_to, rule=None):
+    """The 'Week in the books' card as a full page: podium of the top three members, the biggest jump, best in-the-money rate,
+    stakes wins, and a season ticker. Real numbers from the database. No scripts."""
+    f, t = _date(d_from, 'From'), _date(d_to, 'To')
+    span = (t - f).days + 1
+    b = compute(store, roster, d_from, d_to, rule, 'all')
+    prev = compute(store, roster, (f - datetime.timedelta(days=span)).isoformat(), (f - datetime.timedelta(days=1)).isoformat(), rule, 'all')
+    pv = {m['name']: m['total'] for m in prev['members']}
+    order = [m['name'] for m in roster.get('members', [])]
+    color = lambda n: WEEK_COLORS[order.index(n) % len(WEEK_COLORS)] if n in order else WEEK_COLORS[0]
+    ms = [m for m in b['members'] if m['starts']]
+    top = ms[:3]
+    res = roster.get('residency') or (roster.get('code') or '').upper()
+    week = span == 7 and f.weekday() == 0
+    when = ('Week of ' + _md(f)) if week else (_md(f) + ' to ' + _md(t))
+    if len(top) >= 3:
+        slots = [(top[1], 2), (top[0], 1), (top[2], 3)]
+    else:
+        slots = [(m, i + 1) for i, m in enumerate(top)]
+    pod = ''.join('<div%s style="--c:%s"><div class="n">%d</div><div class="t">%s</div><div class="s">%s pts &middot; %dW %dP %dS</div></div>'
+                  % (' class="p1"' if (r == 1 and len(top) >= 3) else '', color(m['name']), r, _X(m['name']), _X(('%g' % m['total'])), m['wins'], m['seconds'], m['thirds'])
+                  for m, r in slots)
+    jump = max(ms, key=lambda m: m['total'] - pv.get(m['name'], 0), default=None)
+    jump_txt = _X(jump['name']) if jump and (jump['total'] - pv.get(jump['name'], 0)) > 0 else '&ndash;'
+    elig = [m for m in ms if m['starts'] >= 3]
+    best = max(elig, key=lambda m: (m['wins'] + m['seconds'] + m['thirds']) / float(m['starts']), default=None)
+    itm = '%.1f%%' % (100.0 * (best['wins'] + best['seconds'] + best['thirds']) / best['starts']) if best else '&ndash;'
+    tl = _tally(store, roster, d_from, d_to, 'all')
+    sw = sum(a['sw'] for a in tl.values())
+    year = compute(store, roster, datetime.date(t.year, 1, 1).isoformat(), d_to, rule, 'all')
+    tick = ''.join('<span><em>%d</em>%s %s</span>' % (i + 1, _X(m['name']), _X('%g' % m['total'])) for i, m in enumerate([m for m in year['members'] if m['starts']][:20]))
+    body = ('<div class="wk"><div class="card" role="img" aria-label="Weekly recap card for %s">'
+            '<div class="k">%s &middot; %s</div><h2>Week in<br>the books</h2>%s'
+            '<div class="stats"><div><b>%s</b><span>biggest jump</span></div><div><b>%s</b><span>best ITM%s</span></div><div><b>%d</b><span>stakes wins</span></div></div>'
+            '<div class="ft"><span>%s</span><span>Data through %s</span></div></div>%s</div>'
+            % (_X(res), _X(res.upper()), _X(when),
+               ('<div class="pod">' + pod + '</div>') if top else '<div class="empty">No results in these dates yet.</div>',
+               jump_txt, itm, (', ' + _X(best['name'])) if best else '', sw,
+               'Points are for the week' if week else 'Points are for these dates', _md(t),
+               ('<div class="tick" aria-label="Season standings ticker"><div>' + tick + tick + '</div></div>') if tick else ''))
+    return body
+
+
+def week_document(store, roster, d_from, d_to, rule=None):
+    body = week_page(store, roster, d_from, d_to, rule)
+    res = roster.get('residency') or (roster.get('code') or '').upper()
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            '<meta name="robots" content="noindex"><title>%s week in the books</title>%s<style>%s</style></head><body>%s</body></html>'
+            % (_X(res), FONTS_LINK, WEEK_CSS, body)).encode('utf-8')
+
+
 # ---------------------------------------------------------------- public boards (live, read-only, switched on by the admin)
 PUBLIC_RANGES = ('latest', 'this_week', 'last_week', 'last_4', 'season')
-PUBLIC_BOARDS = ('claiming', 'overall', 'standings')
+PUBLIC_BOARDS = ('week', 'claiming', 'overall', 'standings')
 LIVE_TTL = 300
 _live_cache = {}
 _live_lock = threading.Lock()
@@ -747,7 +828,7 @@ def live_page(store, q):
     pub = get_public(store, code)
     if not pub:
         raise PortalError('Not found.', 404)
-    board = q.get('board', 'claiming')
+    board = q.get('board', 'week')
     skin = q.get('skin') or pub['skin']
     rng = q.get('range') or pub['range']
     if board not in PUBLIC_BOARDS or skin not in SKINS or rng not in PUBLIC_RANGES:
@@ -761,6 +842,13 @@ def live_page(store, q):
         if hit and now - hit[0] < LIVE_TTL:
             return hit[1]
     roster = load_roster(store, code)
+    if board == 'week':
+        page = week_document(store, roster, d_from, d_to, load_rule(store, code))
+        with _live_lock:
+            if len(_live_cache) > 200:
+                _live_cache.clear()
+            _live_cache[key] = (now, page)
+        return page
     page = embed_html(store, roster, d_from, d_to, board, skin, load_rule(store, code), 'all')
     page = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
             '<meta name="robots" content="noindex"><title>%s</title><style>html,body{margin:0;background:transparent}body{padding:2px}</style></head><body>%s</body></html>'
@@ -799,7 +887,7 @@ def route(app, method, path, q, headers, body=b''):
                 with app.lock:
                     page = live_page(st, q)
                 return 200, 'text/html; charset=utf-8', page, {
-                    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors *",
+                    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; frame-ancestors *",
                     'Cache-Control': 'public, max-age=300'}
             with app.lock:
                 if path in ('/api/residency/roster', '/api/residency/board', '/api/residency/polls', '/api/residency/embed', '/api/residency/export'):
