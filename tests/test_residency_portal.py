@@ -221,6 +221,151 @@ class Finishes(Base):
             self.assertEqual(s, 200); self.assertIn(kind, extra['Content-Disposition'])
 
 
+class Polls(unittest.TestCase):
+    """Poll tests use their own small roster: five members with a handful of stables each."""
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.st = FakeStore(self.tmp)
+        self.app = App(self.st)
+        os.environ.pop('SDM_HOSTED', None); os.environ.pop('SDM_RESIDENCY_KEY', None); P._writes[:] = []; P._bad[:] = []
+        rows = [['Member', 'Master stable', 'Stable']]
+        self.names = ['Ann', 'Bo', 'Cy', 'Di', 'Ed<script>x</script>']
+        for i, m in enumerate(self.names):
+            rows.append([m, 's%d' % i, 's%d' % i])
+        self.roster = R.build('r.csv', csv_bytes(rows), code='pl')
+        R.save(self.roster, R.residency_dir(self.st.path, 'pl'))
+        for i in range(5):
+            self.st.db.execute('INSERT INTO owners(id,oname,o15,o12,o10) VALUES(?,?,?,?,?)', ('%d' % (i + 1), 's%d' % i, 's%d' % i, 's%d' % i, 's%d' % i))
+        self.rn = 5000
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def run_(self, day, owner, fin, restr='Clm', earn=1000):
+        self.rn += 1
+        self.st.db.execute('INSERT INTO races(racenum,week,restr,age) VALUES(?,?,?,?)', (self.rn, wk(day), restr, 'F-3'))
+        self.st.db.execute('INSERT OR IGNORE INTO weeks(week,races,entries) VALUES(?,0,0)', (wk(day),))
+        self.st.db.execute('INSERT INTO entries(racenum,week,hid,owner_id,fin,earn) VALUES(?,?,?,?,?,?)', (self.rn, wk(day), 1, owner, fin, earn))
+
+    def fill(self, owner, day, fins, restr='Clm'):
+        for f in fins:
+            self.run_(day, owner, f, restr)
+
+    def test_claiming_split_codes(self):
+        for c in ('Clm', 'MC', '25', 'C20'):
+            self.assertTrue(P.is_claiming(c), c)
+        for c in ('', 'Stk', 'G1', 'Alw', None, 'Opt'):
+            self.assertFalse(P.is_claiming(c), c)
+
+    def test_only_claiming_races_count_in_claiming_poll(self):
+        self.fill(1, '2026-10-06', [1] * 6, 'Clm'); self.fill(1, '2026-10-06', [1] * 20, 'Alw')
+        d = P.polls(self.st, self.roster, '2026-10-05', '2026-10-18')
+        r = d['claiming']['rows'][0]
+        self.assertEqual((r['name'], r['starts'], r['wins']), ('Ann', 6, 6))
+        self.assertEqual(next(x for x in d['overall']['rows'] if x['name'] == 'Ann')['starts'], 26)
+
+    def test_small_sample_does_not_beat_steady_record(self):
+        self.fill(1, '2026-10-06', [1, 1, 1, 1, 1])                      # 5 for 5
+        self.fill(2, '2026-10-06', [1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 5, 6, 7, 1, 1, 2, 2, 3, 3])   # 20 starts, steady
+        d = P.polls(self.st, self.roster, '2026-10-05', '2026-10-18')
+        names = [r['name'] for r in d['claiming']['rows']]
+        self.assertEqual(names[0], 'Bo')                                   # steady member leads
+        self.assertIn('Ann', names)                                        # but the small barn is in the poll
+
+    def test_minimum_starts_scales_with_range(self):
+        self.fill(1, '2026-10-06', [1, 1, 2])                              # 3 starts
+        wide = P.polls(self.st, self.roster, '2026-09-21', '2026-10-18')
+        short = P.polls(self.st, self.roster, '2026-10-12', '2026-10-18')
+        self.assertEqual(wide['claiming']['rows'], [])                      # 4 weeks needs 5 starts
+        self.assertEqual(short['claiming']['min_starts'], 3)
+        self.assertEqual(wide['claiming']['min_starts'], 5)
+
+    def test_arrows_compare_with_previous_range(self):
+        self.fill(1, '2026-10-06', [1, 1, 1, 1, 1, 2]); self.fill(2, '2026-10-06', [5, 6, 7, 8, 5, 5])
+        self.fill(1, '2026-09-30', [5, 6, 7, 8, 5, 5]); self.fill(2, '2026-09-30', [1, 1, 1, 1, 1, 2])     # reversed in the range before
+        self.fill(3, '2026-10-07', [2, 2, 3, 3, 4, 5])                                                      # new this range
+        d = P.polls(self.st, self.roster, '2026-10-05', '2026-10-11')
+        by = {r['name']: r for r in d['claiming']['rows']}
+        self.assertEqual(d['previous'], {'from': '2026-09-28', 'to': '2026-10-04'})
+        self.assertEqual(by['Ann']['rank'], 1); self.assertEqual(by['Ann']['previous_rank'], 2); self.assertEqual(by['Ann']['move'], 1)
+        self.assertEqual(by['Bo']['move'], -2)               # was first before, now behind the new member too
+        self.assertIsNone(by['Cy']['move']); self.assertIsNone(by['Cy']['previous_rank'])
+
+    def test_stakes_quality_lifts_overall_not_claiming(self):
+        base = [1, 2, 3, 4, 5, 6, 7, 8, 5]
+        self.fill(1, '2026-10-06', base); self.fill(2, '2026-10-06', base)
+        self.fill(2, '2026-10-07', [1, 1], 'G2')
+        d = P.polls(self.st, self.roster, '2026-10-05', '2026-10-18')
+        o = {r['name']: r for r in d['overall']['rows']}
+        self.assertGreater(o['Bo']['parts']['qual'], o['Ann']['parts']['qual'])
+        self.assertNotIn('qual', d['claiming']['rows'][0]['parts'])
+
+    def test_parts_and_rating_in_range(self):
+        self.fill(1, '2026-10-06', [1, 2, 3, 4, 5, 6, 1, 2, 3, 8])
+        d = P.polls(self.st, self.roster, '2026-10-05', '2026-10-18')
+        for mode in ('claiming', 'overall'):
+            for r in d[mode]['rows']:
+                self.assertTrue(0 <= r['rating'] <= 100)
+                self.assertTrue(all(0 <= v <= 100 for v in r['parts'].values()))
+                self.assertEqual(sum(d['weights'][mode].values()), 100)
+
+    def test_ties_break_on_wins_then_name(self):
+        for o in (1, 2):
+            self.fill(o, '2026-10-06', [1, 2, 3, 4, 5])
+        rows = P.polls(self.st, self.roster, '2026-10-05', '2026-10-18')['claiming']['rows']
+        self.assertEqual([r['name'] for r in rows][:2], ['Ann', 'Bo'])
+
+    def test_bad_inputs(self):
+        for a in (('x', '2026-10-01'), ('2026-10-05', '2026-10-01'), ('2025-01-01', '2026-10-01')):
+            with self.assertRaises(P.PortalError):
+                P.polls(self.st, self.roster, *a)
+        with self.assertRaises(P.PortalError):
+            P.polls(self.st, self.roster, '2026-10-05', '2026-10-06', 'x')
+
+    def test_csv(self):
+        self.fill(1, '2026-10-06', [1, 2, 3, 4, 5, 6])
+        d = P.polls(self.st, self.roster, '2026-10-05', '2026-10-18')
+        rows = list(csv.reader(io.StringIO(P.polls_csv(d, 'claiming'))))
+        self.assertEqual(rows[0][3], 'member'); self.assertEqual(rows[1][3], 'Ann'); self.assertEqual(rows[1][-1], str(d['claiming']['rows'][0]['rating']))
+
+    def test_embed_is_script_free_and_escaped(self):
+        for o in range(1, 6):
+            self.fill(o, '2026-10-06', [1, 2, 3, 4, 5, 6])
+        for board in ('claiming', 'overall', 'standings'):
+            for skin in P.SKINS:
+                h = P.embed_html(self.st, self.roster, '2026-10-05', '2026-10-18', board, skin)
+                self.assertNotIn('<script', h.lower()); self.assertNotIn('onclick', h.lower())
+                self.assertIn('Ed&lt;script&gt;', h)
+                self.assertTrue(h.count('<style>') == 1 and '</div>' in h)
+        with self.assertRaises(P.PortalError):
+            P.embed_html(self.st, self.roster, '2026-10-05', '2026-10-18', 'claiming', 'evil')
+        with self.assertRaises(P.PortalError):
+            P.embed_html(self.st, self.roster, '2026-10-05', '2026-10-18', 'nope', 'plain')
+
+    def test_embed_scoped_css(self):
+        self.fill(1, '2026-10-06', [1, 2, 3, 4, 5, 6])
+        h = P.embed_html(self.st, self.roster, '2026-10-05', '2026-10-18', 'claiming', 'divi')
+        css = h[h.index('<style>') + 7:h.index('</style>')]
+        import re as _re
+        for sel in _re.findall(r'(?:^|\})([^{}@]+)\{', css):
+            for part in sel.split(','):
+                self.assertTrue(part.strip().startswith('.rzb-'), part)     # nothing styles the host page
+
+    def test_routes(self):
+        self.fill(1, '2026-10-06', [1, 2, 3, 4, 5, 6])
+        q = {'code': 'pl', 'from': '2026-10-05', 'to': '2026-10-18'}
+        s, ct, data, _ = P.route(self.app, 'GET', '/api/residency/polls', q, {})
+        self.assertEqual(s, 200); self.assertEqual(json.loads(data)['claiming']['rows'][0]['name'], 'Ann')
+        s, ct, data, extra = P.route(self.app, 'GET', '/api/residency/embed', dict(q, board='claiming', skin='btb'), {})
+        self.assertEqual(s, 200); self.assertIn('attachment', extra['Content-Disposition']); self.assertIn("default-src 'none'", extra['Content-Security-Policy'])
+        s, ct, data, extra = P.route(self.app, 'GET', '/api/residency/embed', dict(q, board='standings', skin='plain', view='1'), {})
+        self.assertEqual(s, 200); self.assertNotIn('Content-Disposition', extra)
+        self.assertEqual(P.route(self.app, 'GET', '/api/residency/embed', dict(q, skin='x'), {})[0], 400)
+        for kind in ('poll_claiming', 'poll_overall'):
+            s, ct, data, extra = P.route(self.app, 'GET', '/api/residency/export', dict(q, kind=kind), {})
+            self.assertEqual(s, 200); self.assertTrue(ct.startswith('text/csv'))
+
+
 class Routes(Base):
     H = {'X-SDM': '1'}
 

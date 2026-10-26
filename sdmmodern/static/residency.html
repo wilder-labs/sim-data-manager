@@ -28,6 +28,14 @@ td.tot{font-weight:700}.rk{width:44px}.tie{font-size:11px;color:var(--mute)}
 .pill{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 7px;margin-left:6px;color:var(--mute)}
 ul.list{margin:6px 0 0 18px;padding:0}
 .tablewrap{overflow-x:auto}
+.poll{display:grid;gap:14px}.pb{border:1px solid var(--line);border-radius:8px;overflow:hidden}.pb h3{margin:0;padding:10px 14px;background:var(--hi);font-size:15px}
+.pr{display:grid;grid-template-columns:54px minmax(0,1fr) 78px;gap:4px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}.pr:hover{background:var(--hi)}
+.pr .n{font-size:30px;font-weight:700;text-align:center;line-height:1;color:var(--accent)}.pr .mv{display:block;font-size:11px;font-weight:700;text-align:center}
+.pr .nm{font-weight:700;font-size:16px}.pr .rec{color:var(--mute);font-size:12px}.pr .rt{text-align:right;font-weight:700;font-size:22px}.pr .rt small{display:block;font-size:10px;color:var(--mute);font-weight:400}
+.parts{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px 14px;padding:4px 0 2px 66px}.parts div{font-size:11px;color:var(--mute);display:flex;justify-content:space-between}
+.meter{grid-column:1/-1;height:5px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:-3px}.meter i{display:block;height:100%;background:var(--accent)}
+.alsov{padding:8px 14px;font-size:12px;color:var(--mute);border-top:1px solid var(--line)}
+#prev{width:100%;height:520px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-top:10px}
 @media(max-width:700px){.pts{grid-template-columns:repeat(4,64px)}}
 </style></head><body>
 <header><h1>Residency Leaderboards</h1>
@@ -78,6 +86,18 @@ ul.list{margin:6px 0 0 18px;padding:0}
 <div id="bmsg" class="mute" style="margin:8px 0"></div>
 <div class="tablewrap"><table id="tbl" hidden><thead><tr><th class="rk">#</th><th class="l">Member</th><th>Starts</th><th>1st</th><th>2nd</th><th>3rd</th><th>Place pts</th><th>Bonus</th><th>Total</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div id="bnote"></div></section>
+
+<section id="s-poll"><h2>6. Polls</h2>
+<div class="mute">Rankings for the dates picked above. Each member is rated from wins, in-the-money rate, finish quality, races run and recent form (the Top 10 also counts stakes and graded results). Small samples are pulled toward the average. Arrows compare with the same number of days just before.</div>
+<div class="row" style="margin-top:8px"><button id="bp" class="pri" disabled>Build polls</button><button id="d-pc" disabled>Claiming poll (CSV)</button><button id="d-po" disabled>Top 10 poll (CSV)</button></div>
+<div id="pmsg" class="mute" style="margin:8px 0"></div><div id="polls" class="poll"></div></section>
+
+<section id="s-emb"><h2>7. Put a board on a website</h2>
+<div class="mute">Makes a snapshot of one board as a block of HTML with its own styling and no scripts. Paste it into a Divi 5 Code module, a WordPress Custom HTML block, or any page that accepts HTML. It shows the numbers as of the moment you make it. Make a new one after each update.</div>
+<div class="row" style="margin-top:8px"><div><label for="eb">Board</label><select id="eb"><option value="claiming">Claiming trainer poll</option><option value="overall">Top 10 poll</option><option value="standings">Standings</option></select></div>
+<div><label for="es">Look</label><select id="es"><option value="plain">Plain</option><option value="divi">Divi 5 (uses the site fonts and colors)</option><option value="btb">BtB (racing-form paper)</option></select></div>
+<button id="e-pv" disabled>Preview</button><button id="e-dl" disabled>Download HTML</button><button id="e-cp" disabled>Copy the code</button></div>
+<div id="emsg" class="mute" style="margin-top:8px"></div><iframe id="prev" title="Preview" sandbox hidden></iframe></section>
 </main>
 <script>
 (function(){
@@ -134,7 +154,7 @@ function openRes(){var c=code();if(!c)return;$('rmsg').textContent='';
   $('rmsg').innerHTML='<span class="warn">'+esc(e.message)+'</span>'})}
 function showRoster(){var r=st.roster,n=r.counts||{};
  $('rsum').innerHTML='<b>'+esc(r.residency||r.code)+'</b>: '+esc(n.members)+' members, '+esc(n.masters)+' master stables, '+esc(n.stables)+' stables'+(r.source?' (from '+esc(r.source)+')':'')}
-function enable(on){['go'].forEach(function(i){$(i).disabled=!on});['d-m','d-s','d-f','d-fm','d-j'].forEach(function(i){$(i).disabled=true})}
+function enable(on){['go','bp','e-pv','e-dl','e-cp'].forEach(function(i){$(i).disabled=!on});['d-pc','d-po'].forEach(function(i){$(i).disabled=true});['d-m','d-s','d-f','d-fm','d-j'].forEach(function(i){$(i).disabled=true})}
 $('load').onclick=openRes;$('code').onkeydown=function(e){if(e.key==='Enter')openRes()};
 /* upload */
 function fileB64(f){return new Promise(function(ok,no){var r=new FileReader();r.onload=function(){var s=String(r.result);ok(s.slice(s.indexOf(',')+1))};r.onerror=no;r.readAsDataURL(f)})}
@@ -190,6 +210,31 @@ $('d-s').onclick=function(){location.href='/api/residency/export?'+qs('&kind=sta
 $('d-f').onclick=function(){location.href='/api/residency/export?'+qs('&kind=finishes')};
 $('d-fm').onclick=function(){location.href='/api/residency/export?'+qs('&kind=finishes_members')};
 $('d-j').onclick=function(){location.href='/api/residency/export?'+qs('&kind=json')};
+
+/* polls and embeds */
+function pq(extra){return 'code='+encodeURIComponent(code())+'&from='+$('from').value+'&to='+$('to').value+'&age='+$('age').value+(extra||'')}
+function mvT(r){var m=r.move;return m===null?'<span class="mv" style="color:var(--mute)">NEW</span>':m>0?'<span class="mv ok">&#9650; '+m+'</span>':m<0?'<span class="mv err">&#9660; '+(-m)+'</span>':'<span class="mv" style="color:var(--mute)">&ndash;</span>'}
+var pOpen={};
+function pollBox(d,mode,title){var b=d[mode],w=d.weights[mode],h='<div class="pb"><h3>'+esc(title)+' <span class="mute">(top '+b.top+', '+b.field+' in the field, '+b.min_starts+'+ starts to qualify)</span></h3>';
+ b.rows.slice(0,b.top).forEach(function(r){var k=mode+r.name,o=pOpen[k];
+  h+='<div class="pr" data-k="'+esc(k)+'" tabindex="0" role="button" aria-expanded="'+(!!o)+'"><div><div class="n">'+r.rank+'</div>'+mvT(r)+'</div><div style="min-width:0"><div class="nm">'+esc(r.name)+'</div><div class="rec">'+r.stables+' stable'+(r.stables==1?'':'s')+' &middot; '+r.wins+'-'+r.seconds+'-'+r.thirds+' from '+r.starts+' starts &middot; '+r.win_pct+'% wins &middot; '+r.itm_pct+'% ITM</div></div><div class="rt">'+r.rating.toFixed(1)+'<small>rating</small></div>'+
+  (o?'<div class="parts">'+Object.keys(w).map(function(p){return '<div><span>'+esc(d.labels[p])+'</span><span>'+w[p]+'%: '+r.parts[p]+'</span></div>'}).join('')+'</div>':'')+'</div>'});
+ if(!b.rows.length)h+='<div class="alsov">Nobody has enough starts in these dates.</div>';
+ var al=b.rows.slice(b.top,b.top+b.also);if(al.length)h+='<div class="alsov"><b>Also receiving votes:</b> '+al.map(function(r){return r.rank+'. '+esc(r.name)+' ('+r.rating.toFixed(1)+')'}).join(' &middot; ')+'</div>';
+ return h+'</div>'}
+var pdata=null;
+function drawPolls(){if(!pdata)return;$('polls').innerHTML=pollBox(pdata,'claiming','Claiming trainer poll')+pollBox(pdata,'overall','Top 10 poll')}
+$('polls').onclick=$('polls').onkeydown=function(e){var r=e.target.closest('.pr');if(!r)return;if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();var k=r.getAttribute('data-k');pOpen[k]=!pOpen[k];drawPolls()};
+$('bp').onclick=function(){$('pmsg').textContent='Working…';api('/api/residency/polls?'+pq()).then(function(d){pdata=d;pOpen={};drawPolls();['d-pc','d-po'].forEach(function(i){$(i).disabled=false});$('pmsg').textContent=d.period.from+' to '+d.period.to+' ('+d.period.days+' days). Compared with '+d.previous.from+' to '+d.previous.to+'. Recent form is '+d.recent.from+' to '+d.recent.to+'.'}).catch(function(e){$('pmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
+$('d-pc').onclick=function(){location.href='/api/residency/export?'+qs('&kind=poll_claiming')};
+$('d-po').onclick=function(){location.href='/api/residency/export?'+qs('&kind=poll_overall')};
+function eq(extra){return pq('&board='+$('eb').value+'&skin='+$('es').value+(extra||''))}
+$('e-pv').onclick=function(){var f=$('prev');f.hidden=false;f.src='/api/residency/embed?'+eq('&view=1');$('emsg').textContent=''};
+$('e-dl').onclick=function(){location.href='/api/residency/embed?'+eq()};
+$('e-cp').onclick=function(){fetch('/api/residency/embed?'+eq('&view=1')).then(function(r){return r.text()}).then(function(t){
+ try{navigator.clipboard.writeText(t).then(function(){$('emsg').innerHTML='<span class="ok">Copied. Paste it into a Divi 5 Code module or a WordPress Custom HTML block.</span>'},function(){fallback(t)})}catch(e){fallback(t)}})};
+function fallback(t){$('emsg').innerHTML='<span class="warn">Copy did not work here. Use Download HTML instead.</span>'}
+
 init();
 })();
 </script></body></html>

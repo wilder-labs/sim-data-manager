@@ -17,7 +17,7 @@ variable SDM_RESIDENCY_KEY does everything. It makes a key for each residency (n
 upload and save rules for its own residency only. Keys are sent in the header X-Residency-Key and stored only scrambled
 (key.json beside the roster). With no admin key set, a hosted copy refuses writes.
 """
-import base64, binascii, csv, datetime, hashlib, hmac, io, json, os, re, secrets, threading, time
+import base64, binascii, csv, datetime, hashlib, hmac, html, io, json, math, os, re, secrets, threading, time
 from . import residency as RS
 
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
@@ -245,6 +245,288 @@ def to_csv(board, kind):
     return b.getvalue()
 
 
+
+# ---------------------------------------------------------------- polls: one rating formula for a date range
+CLAIM_W = dict(win=30, itm=25, fin=30, vol=10, form=5)
+ALL_W = dict(win=20, itm=15, fin=20, qual=30, vol=10, form=5)
+POLL_CFG = dict(claiming=dict(top=5, also=5, min=5, vcap=25, w=CLAIM_W), overall=dict(top=10, also=5, min=8, vcap=60, w=ALL_W))
+PART_LABELS = dict(win='Wins', itm='In the money', fin='Finish quality', qual='Race quality', vol='Races run', form='Recent form')
+SHRINK_K = 8
+
+
+def is_claiming(restr):
+    r = (restr or '').strip()
+    return r in ('MC', 'Clm') or r.isdigit() or (r[:1] == 'C' and len(r) == 3)
+
+
+def _clip(x):
+    return max(0.0, min(1.0, x))
+
+
+def _tally(store, roster, d_from, d_to, age='all'):
+    """Per member: starts, finish counts (1st..7th, 8th or worse), earnings, claiming-only counts, stakes counts.
+    Entries count for a stable only on days it belonged to the member (Joined and Left dates)."""
+    d0, d1 = _date(d_from, 'From'), _date(d_to, 'To')
+    w0, w1 = week_of(store, d0), week_of(store, d1)
+    db = store.db
+    stables = [dict(s, member_key=s.get('member_key') or RS.norm_key(s['member'])) for s in roster.get('stables', [])]
+    keys = {s['key'] for s in stables}
+    key_of_id = {}
+    for row in db.execute('SELECT id, oname, o15, o12, o10 FROM owners'):
+        for v in row[1:]:
+            k = RS.norm_key(v or '')
+            if k in keys:
+                key_of_id.setdefault(row[0], set()).add(k)
+    lines = {}
+    for s in stables:
+        lines.setdefault(s['key'], []).append(s)
+    out = {}
+    for s in stables:
+        out.setdefault(s['member_key'], dict(name=s['member'], stables=set(), starts=0, fin=[0] * 8, nofin=0, earn=0.0,
+                                             cs=0, cfin=[0] * 8, sw=0, gw=0, spl=0))['stables'].add(s['key'])
+    where = ['e.week BETWEEN ? AND ?']
+    if age == '2':
+        where.append("r.age LIKE '_-2'")
+    elif age == '3':
+        where.append("r.age LIKE '_-3'")
+    ids = sorted(key_of_id)
+    for i in range(0, len(ids), 400):
+        part = ids[i:i + 400]
+        sql = ('SELECT e.owner_id, e.week, e.fin, r.restr, e.earn FROM entries e JOIN races r ON r.racenum = e.racenum WHERE e.owner_id IN (%s) AND %s'
+               % (','.join('?' * len(part)), ' AND '.join(where)))
+        for oid, wk, fin, restr, earn in db.execute(sql, part + [w0, w1]):
+            day = date_of(store, wk).isoformat()
+            seen = set()
+            for k in key_of_id[oid]:
+                line = next((x for x in lines[k] if (not x['joined'] or x['joined'] <= day) and (not x['left'] or day <= x['left'])), None)
+                if line is None or line['member_key'] in seen:
+                    continue
+                seen.add(line['member_key'])
+                a = out[line['member_key']]
+                a['starts'] += 1
+                a['earn'] += earn or 0
+                claim = is_claiming(restr)
+                if claim:
+                    a['cs'] += 1
+                if not fin or fin < 1:
+                    a['nofin'] += 1
+                    continue
+                idx = min(fin, 8) - 1
+                a['fin'][idx] += 1
+                if claim:
+                    a['cfin'][idx] += 1
+                if restr in ('Stk', 'GI', 'G1', 'G2', 'G3'):
+                    if fin == 1:
+                        a['sw'] += 1
+                        if restr != 'Stk':
+                            a['gw'] += 1
+                    elif fin <= 3:
+                        a['spl'] += 1
+    return out
+
+
+def _rate(rows, mode, days):
+    """Adds score (0-100) and parts (0-100 each) to every row. Each row: n, w, p, h, sw, gw, sp, ds, dw, dp, dh."""
+    cfg = POLL_CFG[mode]
+    vcap = max(6, cfg['vcap'] * min(1, days / 28.0))
+    total = sum(r['n'] for r in rows) or 1
+    aw = sum(r['w'] for r in rows) / total
+    ai = sum(r['w'] + r['p'] + r['h'] for r in rows) / total
+    af = sum(3 * r['w'] + 2 * r['p'] + r['h'] for r in rows) / total
+    for r in rows:
+        n = r['n']
+        sh = lambda x, pr: (x + SHRINK_K * pr) / (n + SHRINK_K)
+        c = dict(win=_clip(sh(r['w'], aw) / 0.32), itm=_clip(sh(r['w'] + r['p'] + r['h'], ai) / 0.70),
+                 fin=_clip(sh(3 * r['w'] + 2 * r['p'] + r['h'], af) / 1.5),
+                 vol=min(1.0, math.log(1 + n) / math.log(1 + vcap)),
+                 form=_clip(((3 * r['dw'] + 2 * r['dp'] + r['dh']) + 2 * 0.7) / (r['ds'] + 2) / 1.5),
+                 qual=_clip((r['sw'] + 2 * r['gw'] + 0.4 * r['sp']) / 6.0))
+        r['parts'] = {k: int(round(100 * c[k])) for k in cfg['w']}
+        r['score'] = round(100 * sum(cfg['w'][k] / 100.0 * c[k] for k in cfg['w']), 1)
+    return rows
+
+
+def _rows(tally, mode, recent=None):
+    out = []
+    for k, a in tally.items():
+        c = mode == 'claiming'
+        n = a['cs'] if c else a['starts']
+        f = a['cfin'] if c else a['fin']
+        row = dict(key=k, name=a['name'], stables=len(a['stables']), n=n, w=f[0], p=f[1], h=f[2], sw=a['sw'], gw=a['gw'], sp=a['spl'],
+                   earn=int(round(a['earn'])), ds=0, dw=0, dp=0, dh=0)
+        if recent and k in recent:
+            b = recent[k]
+            rf = b['cfin'] if c else b['fin']
+            row.update(ds=b['cs'] if c else b['starts'], dw=rf[0], dp=rf[1], dh=rf[2])
+        out.append(row)
+    return out
+
+
+def _order(rows):
+    rows.sort(key=lambda r: (-r['score'], -r['w'], r['name'].lower()))
+
+
+def polls(store, roster, d_from, d_to, age='all'):
+    """The claiming poll and the overall poll for a date range. Arrows compare with the poll for the range just before,
+    of the same length. Recent form is the last quarter of the range."""
+    d0, d1 = _date(d_from, 'From'), _date(d_to, 'To')
+    if d1 < d0:
+        raise PortalError('The To date is before the From date.')
+    days = (d1 - d0).days + 1
+    if days > 400:
+        raise PortalError('Pick a range of 400 days or less.')
+    if age not in ('all', '2', '3'):
+        raise PortalError('Age must be all, 2 or 3.')
+    p1 = d0 - datetime.timedelta(days=1)
+    p0 = p1 - datetime.timedelta(days=days - 1)
+    q = max(1, int(round(days / 4.0)))
+    r0 = d1 - datetime.timedelta(days=q - 1)
+    cur = _tally(store, roster, d0.isoformat(), d1.isoformat(), age)
+    prev = _tally(store, roster, p0.isoformat(), p1.isoformat(), age)
+    rec = _tally(store, roster, r0.isoformat(), d1.isoformat(), age)
+    res = dict(format=1, code=roster.get('code'), residency=roster.get('residency', ''),
+               period=dict(**{'from': d0.isoformat(), 'to': d1.isoformat()}, days=days),
+               previous=dict(**{'from': p0.isoformat(), 'to': p1.isoformat()}), recent=dict(**{'from': r0.isoformat(), 'to': d1.isoformat()}),
+               filters=dict(age=age), generated_at=datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+               labels=PART_LABELS, weights=dict(claiming=CLAIM_W, overall=ALL_W))
+    for mode, cfg in POLL_CFG.items():
+        mn = max(3, int(round(cfg['min'] * min(1, days / 28.0))))
+        now = _rate([r for r in _rows(cur, mode, rec) if r['n'] >= mn], mode, days)
+        _order(now)
+        before = _rate([r for r in _rows(prev, mode) if r['n'] >= mn], mode, days)
+        _order(before)
+        prank = {r['key']: i + 1 for i, r in enumerate(before)}
+        rows = []
+        for i, r in enumerate(now):
+            pv = prank.get(r['key'])
+            rows.append(dict(rank=i + 1, previous_rank=pv, move=(pv - (i + 1)) if pv else None, name=r['name'], stables=r['stables'],
+                             starts=r['n'], wins=r['w'], seconds=r['p'], thirds=r['h'],
+                             win_pct=round(100.0 * r['w'] / r['n'], 1) if r['n'] else 0.0,
+                             itm_pct=round(100.0 * (r['w'] + r['p'] + r['h']) / r['n'], 1) if r['n'] else 0.0,
+                             earnings=r['earn'], rating=r['score'], parts=r['parts']))
+        res[mode] = dict(top=cfg['top'], also=cfg['also'], min_starts=mn, field=len(rows), rows=rows)
+    return res
+
+
+def polls_csv(data, mode):
+    b = io.StringIO()
+    w = csv.writer(b)
+    w.writerow(['rank', 'previous_rank', 'move', 'member', 'stables', 'starts', 'wins', 'seconds', 'thirds', 'win_pct', 'itm_pct', 'earnings', 'rating'])
+    for r in data[mode]['rows']:
+        w.writerow([r['rank'], r['previous_rank'] or '', '' if r['move'] is None else r['move'], r['name'], r['stables'], r['starts'],
+                    r['wins'], r['seconds'], r['thirds'], r['win_pct'], r['itm_pct'], r['earnings'], r['rating']])
+    return b.getvalue()
+
+
+
+# ---------------------------------------------------------------- embeddable snapshots (plain HTML + CSS, no scripts)
+SKINS = ('plain', 'divi', 'btb')
+_X = html.escape
+
+
+def _skin_css(skin, sid):
+    r = '.rzb-' + sid
+    base = {
+        'plain': '--bg:#ffffff;--bg2:#f2f6f4;--ink:#10211b;--mute:#566a62;--line:#d3dcd8;--led:#14573f;--up:#1a7f4b;--dn:#c8362b;--w:#c8362b;--p:#8d9aa1;--s:#2a5bd7;--font:"Barlow Condensed","Arial Narrow",Arial,sans-serif;--body:system-ui,-apple-system,"Segoe UI",sans-serif;--disp-w:700;',
+        'divi': '--bg:var(--gcid-body-color,#fff);--bg2:rgba(127,127,127,.08);--ink:inherit;--mute:rgba(127,127,127,.95);--line:rgba(127,127,127,.28);--led:var(--gcid-primary-color,#14573f);--up:#1a7f4b;--dn:#c8362b;--w:#c8362b;--p:#8d9aa1;--s:#2a5bd7;--font:inherit;--body:inherit;--disp-w:700;',
+        'btb': '--bg:#fbfaf6;--bg2:#f1eee4;--ink:#1c1b17;--mute:#5d5a4e;--line:#cfc9b6;--led:#7a1f1f;--up:#256b3a;--dn:#a3262a;--w:#a3262a;--p:#6f6a58;--s:#1f4e8c;--font:Georgia,"Times New Roman",serif;--body:Georgia,"Times New Roman",serif;--disp-w:700;',
+    }[skin]
+    dark = {'plain': '--bg:#111e19;--bg2:#16271f;--ink:#e9f0eb;--mute:#8ea69b;--line:#233830;--led:#ffb020;--up:#4cc38a;--dn:#f0675a;--w:#f0675a;--p:#c3cfd4;--s:#6b98ff;',
+            'btb': '--bg:#1c1b17;--bg2:#26241d;--ink:#f1eee4;--mute:#b3ad98;--line:#44402f;--led:#e2a64a;--up:#5fbf7a;--dn:#e8706f;--w:#e8706f;--p:#b9b39c;--s:#7aa7e6;'}.get(skin)
+    css = (r + '{' + base + 'background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);border:1px solid var(--line);border-radius:6px;overflow:hidden;max-width:960px;margin:0 auto;box-sizing:border-box}'
+           + r + ' *{box-sizing:border-box}'
+           + r + ' .h{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--bg2)}'
+           + r + ' .t{font:var(--disp-w) 28px/1.05 var(--font);text-transform:uppercase;letter-spacing:.04em}'
+           + r + ' .s{color:var(--mute);font-size:13px;margin-top:3px}'
+           + r + ' table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}'
+           + r + ' th{font:600 12px var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);text-align:right;padding:9px 10px;border-bottom:2px solid var(--line);white-space:nowrap}'
+           + r + ' td{padding:10px;text-align:right;border-bottom:1px solid var(--line);font:600 17px var(--font);white-space:nowrap}'
+           + r + ' th:first-child,' + r + ' td:first-child,' + r + ' .l{text-align:left}'
+           + r + ' .rk{font:var(--disp-w) 24px/1 var(--font);color:var(--led);display:inline-block;min-width:30px}'
+           + r + ' .nm{font:var(--disp-w) 19px var(--font);text-transform:uppercase;letter-spacing:.03em;white-space:normal}'
+           + r + ' .w{color:var(--w)}' + r + ' .p{color:var(--p)}' + r + ' .sh{color:var(--s)}'
+           + r + ' .wrap{overflow-x:auto}'
+           + r + ' details{border-bottom:1px solid var(--line)}' + r + ' summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:12px 16px}'
+           + r + ' summary::-webkit-details-marker{display:none}' + r + ' summary:hover{background:var(--bg2)}'
+           + r + ' .n{font:var(--disp-w) 46px/.9 var(--font);color:var(--led);text-align:center}'
+           + r + ' .mv{display:block;font:700 13px var(--font);text-align:center;letter-spacing:.05em}' + r + ' .up{color:var(--up)}' + r + ' .dn{color:var(--dn)}' + r + ' .eq,' + r + ' .nw{color:var(--mute)}'
+           + r + ' .who{font:var(--disp-w) 25px/1.05 var(--font);text-transform:uppercase;letter-spacing:.03em}'
+           + r + ' .rec{color:var(--mute);font-size:13px;margin-top:2px}'
+           + r + ' .rt{text-align:right;font:var(--disp-w) 32px/1 var(--font)}' + r + ' .rt small{display:block;font:600 11px var(--font);letter-spacing:.14em;color:var(--mute)}'
+           + r + ' .parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 16px;padding:2px 16px 14px 92px}'
+           + r + ' .parts div{font:600 11px var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);display:flex;justify-content:space-between}'
+           + r + ' .m{height:6px;background:var(--line);border-radius:2px;overflow:hidden;grid-column:1/-1;margin-top:-4px}' + r + ' .m i{display:block;height:100%;background:var(--led)}'
+           + r + ' .pt{display:flex;flex-direction:column;gap:3px}'
+           + r + ' .v{padding:10px 16px 4px;font:600 12px var(--font);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}'
+           + r + ' .f{padding:10px 16px;font-size:12px;color:var(--mute);border-top:1px solid var(--line)}'
+           + '@media (max-width:640px){' + r + ' summary{grid-template-columns:48px minmax(0,1fr)}' + r + ' .rt{grid-column:2;text-align:left}' + r + ' .n{font-size:34px}' + r + ' .parts{padding-left:16px}}')
+    if dark:
+        css += '@media (prefers-color-scheme:dark){' + r + '{' + dark + '}}'
+    return css
+
+
+def _mv(r):
+    m = r['move']
+    if m is None:
+        return '<span class="mv nw">NEW</span>'
+    return '<span class="mv up">&#9650; %d</span>' % m if m > 0 else ('<span class="mv dn">&#9660; %d</span>' % -m if m < 0 else '<span class="mv eq">&#8211;</span>')
+
+
+def _poll_html(data, mode, title):
+    blk = data[mode]
+    rows = blk['rows']
+    labels = data['labels']
+    w = data['weights'][mode]
+    out = []
+    for r in rows[:blk['top']]:
+        parts = ''.join('<div><span>%s</span><span>%d%%</span></div><div class="m"><i style="width:%d%%"></i></div>' % (_X(labels[k]), w[k], r['parts'][k]) for k in w)
+        out.append('<details><summary><div><div class="n">%d</div>%s</div><div><div class="who">%s</div><div class="rec">%d stable%s &middot; %d-%d-%d from %d starts &middot; %.1f%% wins &middot; %.1f%% ITM</div></div>'
+                   '<div class="rt">%.1f<small>RATING</small></div></summary><div class="parts">%s</div></details>'
+                   % (r['rank'], _mv(r), _X(r['name']), r['stables'], '' if r['stables'] == 1 else 's', r['wins'], r['seconds'], r['thirds'], r['starts'], r['win_pct'], r['itm_pct'], r['rating'], parts))
+    if not rows:
+        out.append('<div class="f">No member has enough starts in these dates yet.</div>')
+    also = rows[blk['top']:blk['top'] + blk['also']]
+    if also:
+        out.append('<div class="v">Also receiving votes</div><div class="wrap"><table><thead><tr><th>Member</th><th>W-P-S</th><th>Starts</th><th>Rating</th></tr></thead><tbody>'
+                   + ''.join('<tr><td><span class="rk">%d</span> <span class="nm">%s</span></td><td>%d-%d-%d</td><td>%d</td><td>%.1f</td></tr>' % (r['rank'], _X(r['name']), r['wins'], r['seconds'], r['thirds'], r['starts'], r['rating']) for r in also)
+                   + '</tbody></table></div>')
+    return out
+
+
+def embed_html(store, roster, d_from, d_to, board='claiming', skin='plain', rule=None, age='all'):
+    """A snapshot of one board as a block of HTML with its own scoped CSS and no scripts. Paste it into a Divi 5 Code module,
+    a WordPress Custom HTML block, or any page that allows HTML. It shows the numbers as of the build."""
+    if skin not in SKINS:
+        raise PortalError('skin must be one of: ' + ', '.join(SKINS))
+    if board not in ('claiming', 'overall', 'standings'):
+        raise PortalError('board must be claiming, overall or standings.')
+    sid = 'r' + hashlib.sha1(('%s|%s|%s|%s|%s' % (roster.get('code'), board, skin, d_from, d_to)).encode()).hexdigest()[:6]
+    res = roster.get('residency') or (roster.get('code') or '').upper()
+    if board == 'standings':
+        b = compute(store, roster, d_from, d_to, rule, age)
+        tl = _tally(store, roster, d_from, d_to, age)
+        earn = {m['name']: int(round(tl[RS.norm_key(m['name'])]['earn'])) for m in b['members'] if RS.norm_key(m['name']) in tl}
+        title, period = 'Standings', b['period']
+        body = ['<div class="wrap"><table><thead><tr><th>Member</th><th>Starts</th><th class="w">Win</th><th class="p">Place</th><th class="sh">Show</th><th>Win %</th><th>ITM %</th><th>Earnings</th><th>Pts</th></tr></thead><tbody>']
+        for m in b['members']:
+            n = m['starts']
+            body.append('<tr><td><span class="rk">%d</span> <span class="nm">%s</span></td><td>%d</td><td class="w">%d</td><td class="p">%d</td><td class="sh">%d</td><td>%.1f%%</td><td>%.1f%%</td><td>$%s</td><td style="color:var(--led)">%s</td></tr>'
+                        % (m['rank'], _X(m['name']), n, m['wins'], m['seconds'], m['thirds'], 100.0 * m['wins'] / n if n else 0, 100.0 * (m['wins'] + m['seconds'] + m['thirds']) / n if n else 0,
+                           format(earn.get(m['name'], 0), ','), m['total']))
+        body.append('</tbody></table></div>')
+        foot = 'Points: %s for 1st through %s.' % (b['rule']['points'][0], ', '.join(str(x) for x in b['rule']['points'][1:]) or 'none')
+        built = b['generated_at']
+    else:
+        d = polls(store, roster, d_from, d_to, age)
+        title = 'Claiming Trainer Poll' if board == 'claiming' else 'Top 10 Poll'
+        period, built = d['period'], d['generated_at']
+        body = _poll_html(d, board, title)
+        w = d['weights'][board]
+        foot = 'Rating out of 100: ' + ', '.join('%s %d' % (d['labels'][k].lower(), v) for k, v in w.items()) + '. Arrows compare with the previous %d days.' % period['days']
+    return ('<style>%s</style><div class="rzb-%s" role="region" aria-label="%s"><div class="h"><div class="t">%s</div><div class="s">%s &middot; %s to %s</div></div>%s<div class="f">%s &middot; Built %s</div></div>'
+            % (_skin_css(skin, sid), sid, _X(title + ' ' + res), _X(title), _X(res), period['from'], period['to'], ''.join(body), _X(foot), built.replace('T', ' ').replace('Z', ' UTC')))
+
+
 # ---------------------------------------------------------------- files on disk
 def _code(c):
     c = (c or '').strip().lower()
@@ -468,12 +750,31 @@ def route(app, method, path, q, headers, body=b''):
                     return j(dict(roster=roster_view(load_roster(st, code)), rule=load_rule(st, code), has_key=has_key(st, code)))
                 if path == '/api/residency/board':
                     return j(_board_from_query(st, q))
+                if path == '/api/residency/polls':
+                    code = _code(q.get('code'))
+                    return j(polls(st, load_roster(st, code), q.get('from'), q.get('to'), q.get('age', 'all')))
+                if path == '/api/residency/embed':
+                    code = _code(q.get('code'))
+                    roster = load_roster(st, code)
+                    rule = parse_rule(dict(points=q.get('pts', ''), bonus=q.get('bonus', ''), bonus_on=q.get('bonus_on', 'place'))) if q.get('pts') else load_rule(st, code)
+                    _date(q.get('from'), 'From'); _date(q.get('to'), 'To')
+                    b = q.get('board', 'claiming'); sk = q.get('skin', 'plain')
+                    page = embed_html(st, roster, q.get('from'), q.get('to'), b, sk, rule, q.get('age', 'all'))
+                    name = '%s-%s-%s-to-%s-%s.html' % (code, b, q['from'], q['to'], sk)
+                    hdr = {'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'"}
+                    if not q.get('view'):
+                        hdr['Content-Disposition'] = 'attachment; filename="%s"' % name
+                    return 200, 'text/html; charset=utf-8', page.encode('utf-8'), hdr
                 if path == '/api/residency/export':
                     b = _board_from_query(st, q)
                     kind = q.get('kind', 'members')
                     stem = '%s-%s-to-%s' % (b['code'], b['period']['from'], b['period']['to'])
                     if kind == 'json':
                         return 200, 'application/json', json.dumps(b, indent=1).encode(), {'Content-Disposition': 'attachment; filename="%s.json"' % stem}
+                    if kind in ('poll_claiming', 'poll_overall'):
+                        d = polls(st, load_roster(st, b['code']), q.get('from'), q.get('to'), q.get('age', 'all'))
+                        mode = kind[5:]
+                        return 200, 'text/csv; charset=utf-8', ('\ufeff' + polls_csv(d, mode)).encode('utf-8'), {'Content-Disposition': 'attachment; filename="%s-%s.csv"' % (stem, kind)}
                     if kind not in ('members', 'stables', 'finishes', 'finishes_members'):
                         raise PortalError('kind must be members, stables, finishes, finishes_members or json.')
                     return 200, 'text/csv; charset=utf-8', ('﻿' + to_csv(b, kind)).encode('utf-8'), {'Content-Disposition': 'attachment; filename="%s-%s.csv"' % (stem, kind)}
