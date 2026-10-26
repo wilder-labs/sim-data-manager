@@ -12,6 +12,7 @@ from . import sire as SIRE
 from . import share as SH
 from . import updater as UP
 from . import top25 as T25
+from . import residency_portal as RP
 
 STATIC = os.path.join(os.path.dirname(__file__), 'static')
 
@@ -55,6 +56,8 @@ def make_handler(app):
                     return self._send(open(os.path.join(STATIC, 'top25.html'), 'rb').read(), ctype='text/html; charset=utf-8')
                 if u.path == '/api/top25':             # zapspride's lists from local files only; the Bugler is never contacted
                     return self._send(T25.load(app.store))
+                if u.path == '/residency' or u.path.startswith('/api/residency/'):     # residency leaderboards: local database and roster files only
+                    return RP.serve(self, app, 'GET', u.path, q)
                 if u.path == '/api/ping':
                     app.last_ping, app.seen_ping = time.time(), True
                     return self._send({'ok': True})
@@ -124,6 +127,8 @@ def make_handler(app):
             n = int(self.headers.get('Content-Length') or 0)
             body = self.rfile.read(n) if n else b''
             try:
+                if u.path in ('/api/residency/upload', '/api/residency/rules'):
+                    return RP.serve(self, app, 'POST', u.path, q, body)
                 if u.path == '/api/archive/start':
                     a = json.loads(body or b'{}')
                     if app.job and app.job.state['running']:

@@ -21,10 +21,13 @@ sys.path.insert(0, ROOT)
 
 DEFAULT_URL = 'https://github.com/wilder-labs/sim-data-manager/releases/download/data/SDM-2026.zip'
 GET_OK = {'/', '/m', '/api/info', '/api/tracks', '/api/date', '/api/race-form', '/api/ping', '/healthz',
-          '/top25', '/api/top25'}           # Top 25 Speeds: read-only lists from files in the program; adding files stays off
+          '/top25', '/api/top25',
+          '/residency', '/api/residency/status', '/api/residency/roster', '/api/residency/board', '/api/residency/export'}           # Top 25 Speeds: read-only lists from files in the program; adding files stays off
 POST_OK = {'/api/search', '/api/owner-changes', '/api/best-speeds', '/api/current-horses', '/api/first-time-starters',
-           '/api/graded-races', '/api/stakes-year', '/api/owner-rankings'}
+           '/api/graded-races', '/api/stakes-year', '/api/owner-rankings',
+           '/api/residency/upload', '/api/residency/rules'}   # the two residency routes also need the upload key
 MAX_BODY = 20000                      # a search request is a few hundred bytes
+MAX_BODY_BY_PATH = {'/api/residency/upload': 4 * 1024 * 1024, '/api/residency/rules': 4000}
 RATE_PER_MIN = 120                    # per visitor address
 QUERY_SECONDS = int(os.environ.get('QUERY_SECONDS', '20'))   # a query running longer than this is stopped
 CACHE_PATHS = {'/api/owner-rankings', '/api/first-time-starters', '/api/stakes-year', '/api/best-speeds', '/api/graded-races'}
@@ -285,7 +288,7 @@ def build_handler(app, label, limiter, cache):
                 n = int(self.headers.get('Content-Length') or 0)
             except ValueError:
                 n = -1
-            if n < 0 or n > MAX_BODY:
+            if n < 0 or n > MAX_BODY_BY_PATH.get(path, MAX_BODY):
                 return self._deny(413, 'request too large')
             if path not in CACHE_PATHS or n > 400:
                 return super().do_POST()
@@ -332,6 +335,7 @@ def main():
     from sdmmodern.store import Store
     from sdmmodern import server as SV
     from sdmmodern import viewer as VW
+    os.environ.setdefault('SDM_HOSTED', '1')            # the residency portal then needs SDM_RESIDENCY_KEY to accept uploads
     port = int(os.environ.get('PORT', '8080'))
     data_dir = os.environ.get('DATA_DIR', os.path.join(ROOT, 'data'))
     db = ensure_db(data_dir, os.environ.get('DB_URL', DEFAULT_URL))

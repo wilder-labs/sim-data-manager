@@ -8,3 +8,6 @@ window-profile/
 archive.log
 sdmmodern.prev/
 sdmmodern.new/
+
+# residency rosters and rules saved by the portal (uploaded by the user)
+residency-data/

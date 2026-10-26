@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Residency Leaderboards</title>
+<style>
+:root{--bg:#f5f4f0;--panel:#fff;--ink:#1d2430;--mute:#667085;--line:#e1ded6;--accent:#1f6f5c;--hi:#e8f3ef;--good:#1a7f4b;--bad:#b42318;--warn:#a15c00}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14181f;--panel:#1c222c;--ink:#e6e9ee;--mute:#9aa4b2;--line:#2c3441;--accent:#4fb69a;--hi:#1f3a33;--good:#4cc38a;--bad:#f97066;--warn:#f0b24b}}
+:root[data-theme=dark]{--bg:#14181f;--panel:#1c222c;--ink:#e6e9ee;--mute:#9aa4b2;--line:#2c3441;--accent:#4fb69a;--hi:#1f3a33;--good:#4cc38a;--bad:#f97066;--warn:#f0b24b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;gap:12px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);}
+header h1{font-size:18px;margin:0;flex:1}
+main{max-width:1180px;margin:0 auto;padding:16px 20px 60px;display:grid;gap:16px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+section h2{font-size:15px;margin:0 0 10px}
+label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
+input,select,button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+button{cursor:pointer}button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.pts{display:grid;grid-template-columns:repeat(7,64px);gap:8px}.pts input,.bon input{width:100%;text-align:right}
+.bon{display:grid;grid-template-columns:repeat(4,80px);gap:8px}
+.mute{color:var(--mute);font-size:13px}.err{color:var(--bad)}.ok{color:var(--good)}.warn{color:var(--warn)}
+table{border-collapse:collapse;width:100%}th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{font-size:12px;color:var(--mute);font-weight:600;background:var(--panel)}
+th:first-child,td:first-child,th.l,td.l{text-align:left}th+th,td+td{border-left:1px solid var(--line)}
+tr.m{cursor:pointer}tr.m:hover{background:var(--hi)}tr.sub td{font-size:13px;color:var(--mute)}tr.sub td.l{padding-left:26px}tr.sub2 td.l{padding-left:46px}
+td.tot{font-weight:700}.rk{width:44px}.tie{font-size:11px;color:var(--mute)}
+.pill{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 7px;margin-left:6px;color:var(--mute)}
+ul.list{margin:6px 0 0 18px;padding:0}
+.tablewrap{overflow-x:auto}
+@media(max-width:700px){.pts{grid-template-columns:repeat(4,64px)}}
+</style></head><body>
+<header><h1>Residency Leaderboards</h1>
+<label style="margin:0">Theme <select id="theme"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></label></header>
+<main>
+<section id="s-code"><h2>1. Residency</h2>
+<div class="row"><div><label for="code">Residency code (letters, numbers, dashes)</label><input id="code" maxlength="24" placeholder="nwrc" autocomplete="off"></div>
+<button id="load">Open</button><span id="rmsg" class="mute"></span></div>
+<div id="rsum" class="mute" style="margin-top:8px"></div></section>
+
+<section id="s-up" hidden><h2>2. Roster file</h2>
+<div class="mute">Upload the roster workbook (.xlsx) or .csv. It replaces the saved roster for this code.</div>
+<div class="row" style="margin-top:8px">
+<div><label for="file">File</label><input id="file" type="file" accept=".xlsx,.csv"></div>
+<div><label for="rname">Residency name (optional)</label><input id="rname" maxlength="80"></div>
+<div id="keybox" hidden><label for="key">Upload key</label><input id="key" type="password" autocomplete="off"></div>
+<button id="up" class="pri">Upload</button><button id="upany" hidden>Save anyway</button></div>
+<div id="upmsg" style="margin-top:8px"></div></section>
+
+<section><h2>3. Dates</h2>
+<div class="row">
+<div><label for="pre">Quick pick</label><select id="pre"><option value="lw">Latest full week</option><option value="pw">Week before that</option><option value="mtd">Month to date</option><option value="ytd">Year to date</option><option value="cu">Custom</option></select></div>
+<div><label for="from">From</label><input id="from" type="date"></div>
+<div><label for="to">To</label><input id="to" type="date"></div>
+<span id="drange" class="mute"></span></div>
+<div class="mute" style="margin-top:6px">Weeks run Monday to Sunday. Month and year use the calendar.</div></section>
+
+<section><h2>4. Scoring</h2>
+<label>Points for each finish</label>
+<div class="pts" id="pts"></div>
+<div class="row" style="margin-top:12px"><div><label>Stakes bonus points</label>
+<div class="bon"><div><label for="b-stk">Stakes</label><input id="b-stk" type="number" min="0" max="1000" step="any" value="0"></div>
+<div><label for="b-g3">Grade 3</label><input id="b-g3" type="number" min="0" max="1000" step="any" value="0"></div>
+<div><label for="b-g2">Grade 2</label><input id="b-g2" type="number" min="0" max="1000" step="any" value="0"></div>
+<div><label for="b-g1">Grade 1</label><input id="b-g1" type="number" min="0" max="1000" step="any" value="0"></div></div></div>
+<div><label for="bon_on">Bonus is paid for</label><select id="bon_on"><option value="place">Any scoring finish</option><option value="win">Wins only</option></select></div></div>
+<div class="row" style="margin-top:12px">
+<div><label for="age">Horse age</label><select id="age"><option value="all">All</option><option value="2">2-year-olds</option><option value="3">3-year-olds</option></select></div>
+<div><label for="races">Races</label><select id="races"><option value="all">All</option><option value="stakes">Stakes and graded</option><option value="graded">Graded only</option></select></div>
+<div><label for="preset">Preset</label><select id="preset"><option value="">Choose…</option><option value="orph">Orphans 2026 sheet (10-8-6-4-3-2-1)</option><option value="top5">Top 5 (10-8-6-4-3)</option><option value="wins">Wins only (1 point)</option></select></div>
+<button id="saver" hidden>Save as this residency's rules</button></div>
+<div id="rulemsg" class="mute" style="margin-top:6px"></div></section>
+
+<section><h2>5. Leaderboard</h2>
+<div class="row"><button id="go" class="pri" disabled>Build leaderboard</button>
+<button id="d-m" disabled>Download standings (CSV)</button><button id="d-s" disabled>Download by stable (CSV)</button><button id="d-j" disabled>Download JSON</button></div>
+<div id="bmsg" class="mute" style="margin:8px 0"></div>
+<div class="tablewrap"><table id="tbl" hidden><thead><tr><th class="rk">#</th><th class="l">Member</th><th>Starts</th><th>1st</th><th>2nd</th><th>3rd</th><th>Place pts</th><th>Bonus</th><th>Total</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div id="bnote"></div></section>
+</main>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+var st={can_write:false,needs_key:false,first:null,last:null,roster:null,board:null};
+/* theme */
+var th=ls('sdm_theme')||'auto';$('theme').value=th;apply(th);
+function apply(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t)}
+$('theme').onchange=function(){ls('sdm_theme',this.value);apply(this.value)};
+/* points inputs */
+var names=['1st','2nd','3rd','4th','5th','6th','7th'],def=[10,8,6,4,3,0,0];
+$('pts').innerHTML=names.map(function(n,i){return '<div><label for="p'+i+'">'+n+'</label><input id="p'+i+'" type="number" min="0" max="1000" step="any" value="'+def[i]+'"></div>'}).join('');
+function getRule(){var p=[];for(var i=0;i<7;i++)p.push(Number($('p'+i).value||0));
+ while(p.length>1&&p[p.length-1]===0)p.pop();
+ return{points:p,bonus:{stk:Number($('b-stk').value||0),g3:Number($('b-g3').value||0),g2:Number($('b-g2').value||0),g1:Number($('b-g1').value||0)},bonus_on:$('bon_on').value}}
+function setRule(r){for(var i=0;i<7;i++)$('p'+i).value=(r.points[i]!=null?r.points[i]:0);
+ ['stk','g3','g2','g1'].forEach(function(k){$('b-'+k).value=r.bonus[k]||0});$('bon_on').value=r.bonus_on||'place'}
+$('preset').onchange=function(){var v=this.value;if(v==='orph')setRule({points:[10,8,6,4,3,2,1],bonus:{},bonus_on:'place'});
+ if(v==='top5')setRule({points:[10,8,6,4,3],bonus:{},bonus_on:'place'});if(v==='wins')setRule({points:[1],bonus:{},bonus_on:'place'});this.value=''};
+/* dates */
+function iso(d){var m=d.getMonth()+1,x=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(x<10?'0':'')+x}
+function parse(s){var a=s.split('-');return new Date(+a[0],+a[1]-1,+a[2])}
+function addDays(d,n){var x=new Date(d.getTime());x.setDate(x.getDate()+n);return x}
+function preset(){var p=$('pre').value;if(p==='cu'||!st.last)return;var last=parse(st.last),first=st.first?parse(st.first):null;
+ var dow=(last.getDay()+6)%7; /* Mon=0 */
+ var lwEnd=dow===6?last:addDays(last,-(dow+1)); /* last Sunday on or before last data day */
+ var f,t;
+ if(p==='lw'){t=lwEnd;f=addDays(t,-6)}
+ else if(p==='pw'){t=addDays(lwEnd,-7);f=addDays(t,-6)}
+ else if(p==='mtd'){t=last;f=new Date(last.getFullYear(),last.getMonth(),1)}
+ else{t=last;f=new Date(last.getFullYear(),0,1)}
+ $('from').value=iso(f);$('to').value=iso(t)}
+$('pre').onchange=preset;
+$('from').onchange=$('to').onchange=function(){$('pre').value='cu'};
+/* api */
+function api(path,opts){opts=opts||{};return fetch(path,opts).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||('Error '+r.status));return j})})}
+function post(path,obj){var h={'Content-Type':'application/json','X-SDM':'1'};if(st.needs_key)h['X-Residency-Key']=$('key').value;return api(path,{method:'POST',headers:h,body:JSON.stringify(obj)})}
+function code(){return $('code').value.trim().toLowerCase()}
+function init(){api('/api/residency/status').then(function(s){
+ st.can_write=s.can_write;st.needs_key=s.needs_key;st.first=s.first_date;st.last=s.last_date;
+ $('s-up').hidden=!s.can_write&&!s.needs_key;$('keybox').hidden=!s.needs_key;$('saver').hidden=!s.can_write;
+ if(!s.can_write&&s.needs_key){$('s-up').hidden=true}
+ if(s.first_date){$('drange').textContent='Data covers '+s.first_date+' to '+s.last_date;$('from').min=$('to').min=s.first_date;$('from').max=$('to').max=s.last_date}
+ preset();var c=ls('sdm_res_code');if(c){$('code').value=c;openRes()}
+ }).catch(function(e){$('rmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
+function openRes(){var c=code();if(!c)return;$('rmsg').textContent='';
+ api('/api/residency/roster?code='+encodeURIComponent(c)).then(function(j){
+  st.roster=j.roster;ls('sdm_res_code',c);setRule(j.rule);showRoster();enable(true)
+ }).catch(function(e){st.roster=null;$('rsum').textContent='';enable(false);
+  $('rmsg').innerHTML='<span class="warn">'+esc(e.message)+'</span>'})}
+function showRoster(){var r=st.roster,n=r.counts||{};
+ $('rsum').innerHTML='<b>'+esc(r.residency||r.code)+'</b>: '+esc(n.members)+' members, '+esc(n.masters)+' master stables, '+esc(n.stables)+' stables'+(r.source?' (from '+esc(r.source)+')':'')}
+function enable(on){['go'].forEach(function(i){$(i).disabled=!on});['d-m','d-s','d-j'].forEach(function(i){$(i).disabled=true})}
+$('load').onclick=openRes;$('code').onkeydown=function(e){if(e.key==='Enter')openRes()};
+/* upload */
+function fileB64(f){return new Promise(function(ok,no){var r=new FileReader();r.onload=function(){var s=String(r.result);ok(s.slice(s.indexOf(',')+1))};r.onerror=no;r.readAsDataURL(f)})}
+function doUpload(any){var f=$('file').files[0];if(!code()){$('upmsg').innerHTML='<span class="err">Enter a residency code first.</span>';return}
+ if(!f){$('upmsg').innerHTML='<span class="err">Choose a file first.</span>';return}
+ $('up').disabled=true;$('upmsg').textContent='Uploading…';
+ fileB64(f).then(function(b){return post('/api/residency/upload',{code:code(),filename:f.name,data:b,name:$('rname').value,accept_errors:!!any})})
+ .then(function(j){$('up').disabled=false;var h='';
+  var pr=j.problems||[];
+  var errs=pr.filter(function(p){return p.level!=='note'}),warns=pr.filter(function(p){return p.level==='note'});
+  if(j.saved)h+='<div class="ok">Saved. '+esc(j.roster.counts.stables)+' stables for '+esc(j.roster.counts.members)+' members.</div>';
+  else h+='<div class="err">Not saved. Fix the problems below, or press Save anyway.</div>';
+  $('upany').hidden=j.saved;
+  function lst(a,c){return a.length?'<ul class="list '+c+'">'+a.slice(0,40).map(function(p){return '<li>'+esc(typeof p==='string'?p:(p.message||p.msg||JSON.stringify(p)))+'</li>'}).join('')+(a.length>40?'<li>…and '+(a.length-40)+' more</li>':'')+'</ul>':''}
+  h+=lst(errs,'err')+lst(warns,'warn');
+  var m=j.match;h+='<div style="margin-top:6px">Database check: '+esc(m.matched)+' of '+esc(m.checked)+' stables found.</div>';
+  if(m.unmatched.length)h+='<div class="warn">Not found in the database:</div>'+lst(m.unmatched.map(function(x){return x.stable+' ('+x.member+')'+(x.close&&x.close.length?' — close: '+x.close.join(', '):'')}),'warn');
+  if(m.no_races.length)h+='<div class="mute">Found but no races yet: '+esc(m.no_races.slice(0,30).join(', '))+(m.no_races.length>30?'…':'')+'</div>';
+  $('upmsg').innerHTML=h;if(j.saved){st.roster=j.roster;$('code').value=j.roster.code;ls('sdm_res_code',j.roster.code);showRoster();enable(true);openRes()}
+ }).catch(function(e){$('up').disabled=false;$('upmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
+$('up').onclick=function(){doUpload(false)};$('upany').onclick=function(){doUpload(true)};
+$('saver').onclick=function(){post('/api/residency/rules',{code:code(),rule:getRule()}).then(function(){$('rulemsg').innerHTML='<span class="ok">Rules saved.</span>'}).catch(function(e){$('rulemsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
+/* leaderboard */
+function qs(extra){var r=getRule();var b=['stk','g3','g2','g1'].map(function(k){return k+':'+r.bonus[k]}).join(',');
+ return 'code='+encodeURIComponent(code())+'&from='+$('from').value+'&to='+$('to').value+'&pts='+encodeURIComponent(r.points.join(','))+'&bonus='+encodeURIComponent(b)+'&bonus_on='+r.bonus_on+'&age='+$('age').value+'&races='+$('races').value+(extra||'')}
+var open={};
+function build(){ $('bmsg').textContent='Working…';
+ api('/api/residency/board?'+qs()).then(function(b){st.board=b;open={};draw();['d-m','d-s','d-j'].forEach(function(i){$(i).disabled=false});
+  $('bmsg').textContent=b.period.from+' to '+b.period.to+' ('+b.period.days+' days). Built '+b.generated_at.replace('T',' ').replace('Z',' UTC')+'.'
+ }).catch(function(e){$('bmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>';$('tbl').hidden=true})}
+function cells(x){return '<td>'+x.starts+'</td><td>'+x.wins+'</td><td>'+x.seconds+'</td><td>'+x.thirds+'</td><td>'+x.points+'</td><td>'+x.bonus+'</td><td class="tot">'+x.total+'</td>'}
+function draw(){var b=st.board,h='';
+ b.members.forEach(function(m,i){var mo=open['m'+i];
+  h+='<tr class="m" data-k="m'+i+'" tabindex="0" aria-expanded="'+(!!mo)+'"><td class="rk">'+m.rank+(m.tied?'<span class="tie"> T</span>':'')+'</td><td class="l">'+(mo?'▾ ':'▸ ')+esc(m.name)+'<span class="pill">'+m.masters.length+' master'+(m.masters.length==1?'':'s')+'</span></td>'+cells(m)+'</tr>';
+  if(mo)m.masters.forEach(function(x,j){var xo=open['m'+i+'x'+j];
+   h+='<tr class="m sub" data-k="m'+i+'x'+j+'" tabindex="0" aria-expanded="'+(!!xo)+'"><td></td><td class="l">'+(xo?'▾ ':'▸ ')+esc(x.name)+'<span class="pill">'+x.stables.length+' stables</span></td>'+cells(x)+'</tr>';
+   if(xo)x.stables.forEach(function(s){h+='<tr class="sub sub2"><td></td><td class="l">'+esc(s.name)+(s.matched?'':'<span class="pill">not in database</span>')+'</td>'+cells(s)+'</tr>'})})});
+ $('tb').innerHTML=h;$('tbl').hidden=false;
+ var n='';if(b.unmatched.length)n+='<div class="warn" style="margin-top:8px">'+b.unmatched.length+(b.unmatched.length==1?' stable was':' stables were')+' not found in the database and score zero: '+esc(b.unmatched.slice(0,25).join(', '))+(b.unmatched.length>25?'…':'')+'</div>';
+ if(b.data&&b.data.last_date&&b.period.to>b.data.last_date)n+='<div class="warn" style="margin-top:6px">The database ends '+esc(b.data.last_date)+', before the end of this range.</div>';
+ $('bnote').innerHTML=n}
+function tog(e){var tr=e.target.closest('tr.m');if(!tr)return;if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();var k=tr.getAttribute('data-k');open[k]=!open[k];if(!open[k])Object.keys(open).forEach(function(z){if(z.indexOf(k+'x')===0)delete open[z]});draw()}
+$('tb').onclick=tog;$('tb').onkeydown=tog;
+$('go').onclick=build;
+$('d-m').onclick=function(){location.href='/api/residency/export?'+qs('&kind=members')};
+$('d-s').onclick=function(){location.href='/api/residency/export?'+qs('&kind=stables')};
+$('d-j').onclick=function(){location.href='/api/residency/export?'+qs('&kind=json')};
+init();
+})();
+</script></body></html>
