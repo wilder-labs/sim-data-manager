@@ -419,48 +419,6 @@ class Routes(Base):
     def hdr(self, key):
         return dict(self.H, **{'X-Residency-Key': key})
 
-    def test_admin_creates_residency_and_gets_its_key(self):
-        self.hosted()
-        j = json.loads(self.up(headers=self.hdr('sesame'), code='orph')[2])
-        key = j['new_key']; self.assertTrue(j['saved']); self.assertTrue(key and len(key) >= 20)
-        raw = open(P._key_path(self.st, 'orph')).read()
-        self.assertNotIn(key, raw)                                   # only the scrambled form is stored
-        j2 = json.loads(self.up(headers=self.hdr(key), code='orph')[2])   # its own key works
-        self.assertTrue(j2['saved']); self.assertIsNone(j2['new_key'])
-        body = json.dumps(dict(code='orph', rule=dict(points=[5]))).encode()
-        self.assertEqual(self.call('POST', '/api/residency/rules', headers=self.hdr(key), body=body)[0], 200)
-
-    def test_residency_key_is_limited_to_its_own_residency(self):
-        self.hosted()
-        k1 = json.loads(self.up(headers=self.hdr('sesame'), code='aaa')[2])['new_key']
-        json.loads(self.up(headers=self.hdr('sesame'), code='bbb')[2])
-        self.assertEqual(self.up(headers=self.hdr(k1), code='bbb')[0], 403)
-        self.assertEqual(self.up(headers=self.hdr(k1), code='ccc')[0], 403)          # cannot create a new residency
-        self.assertFalse(os.path.exists(R.residency_dir(self.st.path, 'ccc')))
-        nk = json.dumps(dict(code='aaa')).encode()
-        self.assertEqual(self.call('POST', '/api/residency/newkey', headers=self.hdr(k1), body=nk)[0], 403)
-        body = json.dumps(dict(code='bbb', rule=dict(points=[5]))).encode()
-        self.assertEqual(self.call('POST', '/api/residency/rules', headers=self.hdr(k1), body=body)[0], 403)
-
-    def test_newkey_replaces_old_key(self):
-        self.hosted()
-        k1 = json.loads(self.up(headers=self.hdr('sesame'), code='aaa')[2])['new_key']
-        s, _, data, _ = self.call('POST', '/api/residency/newkey', headers=self.hdr('sesame'), body=json.dumps(dict(code='aaa')).encode())
-        k2 = json.loads(data)['new_key']; self.assertEqual(s, 200); self.assertNotEqual(k1, k2)
-        self.assertEqual(self.up(headers=self.hdr(k1), code='aaa')[0], 403)
-        self.assertEqual(self.up(headers=self.hdr(k2), code='aaa')[0], 200)
-
-    def test_newkey_for_new_code_then_residency_key_can_upload(self):
-        self.hosted()
-        k = json.loads(self.call('POST', '/api/residency/newkey', headers=self.hdr('sesame'), body=json.dumps(dict(code='fresh')).encode())[2])['new_key']
-        self.assertEqual(self.up(headers=self.hdr(k), code='fresh')[0], 200)
-
-    def test_newkey_local_refused_and_needs_header(self):
-        nk = json.dumps(dict(code='aaa')).encode()
-        self.assertEqual(self.call('POST', '/api/residency/newkey', headers=self.H, body=nk)[0], 400)
-        self.hosted()
-        self.assertEqual(self.call('POST', '/api/residency/newkey', headers={}, body=nk)[0], 403)
-
     def test_wrong_keys_are_counted_and_blocked(self):
         self.hosted()
         for i in range(P.MAX_BAD_KEYS_PER_HOUR):
@@ -472,13 +430,6 @@ class Routes(Base):
         json.loads(self.up(headers=self.hdr('sesame'), code='aaa')[2])
         self.assertEqual(self.up(headers=self.hdr(''), code='aaa')[0], 403)
 
-    def test_roster_view_says_if_residency_has_key(self):
-        self.hosted()
-        self.up(headers=self.hdr('sesame'), code='aaa')
-        j = json.loads(self.call('GET', '/api/residency/roster', {'code': 'aaa'}, headers={'X-Residency-Key': 'sesame'})[2])
-        self.assertTrue(j['has_key']); self.assertNotIn('hash', json.dumps(j))
-
-    # ---- public boards
     def pub(self, key, code='tst', **kw):
         body = json.dumps(dict(code=code, **kw)).encode()
         return self.call('POST', '/api/residency/public', headers=self.hdr(key), body=body)
@@ -500,14 +451,6 @@ class Routes(Base):
         self.assertNotIn(b'<script', data.lower())
         self.assertEqual(self.pub('sesame', enabled=False)[0], 200)
         self.assertEqual(self.live()[0], 404)
-
-    def test_only_admin_can_switch_public(self):
-        self.hosted()
-        k = json.loads(self.up(headers=self.hdr('sesame'), code='aaa')[2])['new_key']
-        self.assertEqual(self.pub(k, code='aaa', enabled=True)[0], 403)   # the residency's own key is not enough
-        self.assertEqual(self.pub('', code='aaa', enabled=True)[0], 403)
-        self.assertEqual(self.call('POST', '/api/residency/public', headers={}, body=b'{}')[0], 403)
-        self.assertEqual(self.live(code='aaa')[0], 404)
 
     def test_private_residency_reads_need_a_key_public_ones_do_not(self):
         self.hosted()

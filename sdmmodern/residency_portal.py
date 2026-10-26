@@ -10,12 +10,10 @@ Routes (wired in server.py):
   GET  /api/residency/export?...     the same as a file: kind=members|stables (CSV) or kind=json
   POST /api/residency/upload         build and save a roster from an uploaded file
   POST /api/residency/rules          save the scoring rules for a residency
-  POST /api/residency/newkey         admin only (hosted): make or replace a residency's own key
 
-Writing (upload, rules) is allowed on a local copy. On a hosted copy (SDM_HOSTED=1) the admin key in the environment
-variable SDM_RESIDENCY_KEY does everything. It makes a key for each residency (newkey, or the first upload); that key can then
-upload and save rules for its own residency only. Keys are sent in the header X-Residency-Key and stored only scrambled
-(key.json beside the roster). With no admin key set, a hosted copy refuses writes.
+Writing (upload, rules, public) is allowed on a local copy. On a hosted copy (SDM_HOSTED=1) only the admin key in the environment
+variable SDM_RESIDENCY_KEY can write or open a private residency, sent in the header X-Residency-Key. With no admin key set, a hosted
+copy refuses writes.
 """
 import base64, binascii, csv, datetime, hashlib, hmac, html, io, json, math, os, re, secrets, threading, time
 from . import residency as RS
@@ -579,58 +577,31 @@ def can_write():
     return (not _hosted()) or bool(os.environ.get('SDM_RESIDENCY_KEY'))
 
 
-def _key_path(store, code):
-    return os.path.join(_dir(store, code), 'key.json')
-
-
-def _hash_key(key, salt):
-    return hashlib.pbkdf2_hmac('sha256', key.encode('utf-8', 'ignore'), salt, KDF_ROUNDS).hex()
-
-
-def _set_key(store, code):
-    """Makes a new key for a residency, keeps only its scrambled form, and returns the key itself (shown once)."""
-    key = secrets.token_urlsafe(18)
-    salt = secrets.token_bytes(16)
-    _write_json(_key_path(store, code), dict(salt=salt.hex(), hash=_hash_key(key, salt)))
-    return key
-
-
-def has_key(store, code):
-    return os.path.isfile(_key_path(store, code))
-
-
-def _key_ok(store, code, sent):
-    d = _read_json(_key_path(store, code))
-    try:
-        salt = bytes.fromhex(d['salt'])
-        return hmac.compare_digest(_hash_key(sent, salt).encode(), str(d['hash']).encode())
-    except (TypeError, KeyError, ValueError):
-        return False
+def _admin_ok(headers):
+    """Hosted copy: true when the request carries the site admin key (SDM_RESIDENCY_KEY). Wrong keys are counted and blocked."""
+    akey = os.environ.get('SDM_RESIDENCY_KEY', '')
+    if not akey:
+        raise PortalError('Changes are switched off on this site.', 403)
+    sent = headers.get('X-Residency-Key', '')
+    now = time.time()
+    with _wlock:
+        _bad[:] = [t for t in _bad if now - t < 3600]
+        if len(_bad) >= MAX_BAD_KEYS_PER_HOUR:
+            raise PortalError('Too many wrong keys. Try again later.', 429)
+    if sent and hmac.compare_digest(sent.encode('utf-8', 'ignore'), akey.encode('utf-8')):
+        return True
+    with _wlock:
+        _bad.append(now)
+    raise PortalError('That key is not right.', 403)
 
 
 def _check_write(store, headers, code, admin_only=False):
-    """Who may change this residency. Local copy: anyone at the keyboard. Hosted copy: the admin key
-    (SDM_RESIDENCY_KEY), or the residency's own key unless admin_only. Wrong keys are counted and blocked."""
+    """Who may change a residency. Local copy: anyone at the keyboard. Hosted copy: only the admin key."""
     if headers.get('X-SDM') != '1':
         raise PortalError('Request refused.', 403)
     admin = False
     if _hosted():
-        akey = os.environ.get('SDM_RESIDENCY_KEY', '')
-        if not akey:
-            raise PortalError('Uploads are switched off on this site.', 403)
-        sent = headers.get('X-Residency-Key', '')
-        now = time.time()
-        with _wlock:
-            _bad[:] = [t for t in _bad if now - t < 3600]
-            if len(_bad) >= MAX_BAD_KEYS_PER_HOUR:
-                raise PortalError('Too many wrong keys. Try again later.', 429)
-        admin = hmac.compare_digest(sent.encode('utf-8', 'ignore'), akey.encode('utf-8'))
-        if not admin:
-            ok = (not admin_only) and has_key(store, code) and bool(sent) and _key_ok(store, code, sent)
-            if not ok:
-                with _wlock:
-                    _bad.append(now)
-                raise PortalError('That key is not right.', 403)
+        admin = _admin_ok(headers)
     now = time.time()
     with _wlock:
         _writes[:] = [t for t in _writes if now - t < 3600]
@@ -639,29 +610,13 @@ def _check_write(store, headers, code, admin_only=False):
         _writes.append(now)
     return admin
 
-
 def _check_read(store, headers, code):
-    """Hosted site: a residency's roster and boards are private until the admin makes it public.
-    The admin key or the residency's own key opens them."""
+    """Hosted site: a residency's roster and boards are private until the admin makes it public. Only the admin key opens them."""
     if not _hosted() or get_public(store, code):
         return
-    sent = headers.get('X-Residency-Key', '')
-    if sent:
-        now = time.time()
-        with _wlock:
-            _bad[:] = [t for t in _bad if now - t < 3600]
-            if len(_bad) >= MAX_BAD_KEYS_PER_HOUR:
-                raise PortalError('Too many wrong keys. Try again later.', 429)
-        akey = os.environ.get('SDM_RESIDENCY_KEY', '')
-        if akey and hmac.compare_digest(sent.encode('utf-8', 'ignore'), akey.encode('utf-8')):
-            return
-        if has_key(store, code) and _key_ok(store, code, sent):
-            return
-        with _wlock:
-            _bad.append(now)
-        raise PortalError('That key is not right.', 403)
-    raise PortalError('This residency is private. Enter its key.', 403)
-
+    if not headers.get('X-Residency-Key'):
+        raise PortalError('This residency is private. Enter the admin key.', 403)
+    _admin_ok(headers)
 
 def roster_view(roster):
     return dict(code=roster['code'], residency=roster.get('residency', ''), built=roster.get('built'), counts=roster['counts'],
@@ -685,8 +640,6 @@ def upload(store, headers, body):
     a = _body(body)
     code = _code(a.get('code'))
     admin = _check_write(store, headers, code)
-    if _hosted() and not has_key(store, code) and not admin:
-        raise PortalError('This residency does not exist yet. The site admin creates it.', 403)
     try:
         data = base64.b64decode(a.get('data') or '', validate=True)
     except (binascii.Error, ValueError):
@@ -701,14 +654,12 @@ def upload(store, headers, body):
         r = RS.build(str(a.get('filename') or 'roster.xlsx')[:120], data, code, (a.get('name') or '')[:80] or None)
     except RS.RosterError as e:
         raise PortalError(str(e))
-    saved, new_key = False, None
+    saved = False
     if r['ok'] or a.get('accept_errors'):
         RS.save(r, d)
         saved = True
-        if _hosted() and not has_key(store, code):
-            new_key = _set_key(store, code)
     rep = RS.match_conn(r, store.db)
-    return dict(saved=saved, new_key=new_key, ok=r['ok'], roster=roster_view(r), problems=r['problems']['errors'] + [dict(w, level='note') for w in r['problems']['warnings']], match=dict(
+    return dict(saved=saved, ok=r['ok'], roster=roster_view(r), problems=r['problems']['errors'] + [dict(w, level='note') for w in r['problems']['warnings']], match=dict(
         checked=rep['checked'], matched=rep['matched'], unmatched=[dict(stable=x['stable'], member=x['member'], close=x['close']) for x in rep['stables'] if not x['matched']],
         no_races=[x['stable'] for x in rep['stables'] if x['matched'] and not x['races']]))
 
@@ -723,22 +674,6 @@ def save_rules(store, headers, body):
     rule = parse_rule(a.get('rule'))
     _write_json(os.path.join(_dir(store, code), 'rules.json'), rule)
     return dict(saved=True, rule=rule)
-
-
-def new_key(store, headers, body):
-    """Admin only: make a key for a residency (creating it if needed) or replace its key. The key is shown once."""
-    if headers.get('X-SDM') != '1':
-        raise PortalError('Request refused.', 403)
-    a = _body(body)
-    code = _code(a.get('code'))
-    if not _hosted():
-        raise PortalError('Keys are only used on the hosted site.')
-    _check_write(store, headers, code, admin_only=True)
-    d = _dir(store, code)
-    root = os.path.dirname(d)
-    if not os.path.isdir(d) and os.path.isdir(root) and len([x for x in os.listdir(root) if os.path.isdir(os.path.join(root, x))]) >= MAX_CODES:
-        raise PortalError('This site already holds %d residencies.' % MAX_CODES)
-    return dict(code=code, new_key=_set_key(store, code))
 
 
 # ---------------------------------------------------------------- public boards (live, read-only, switched on by the admin)
@@ -874,7 +809,7 @@ def route(app, method, path, q, headers, body=b''):
                     return j(dict(can_write=can_write(), needs_key=_hosted(), first_date=lo, last_date=hi))
                 if path == '/api/residency/roster':
                     code = _code(q.get('code'))
-                    return j(dict(roster=roster_view(load_roster(st, code)), rule=load_rule(st, code), has_key=has_key(st, code), public=get_public(st, code)))
+                    return j(dict(roster=roster_view(load_roster(st, code)), rule=load_rule(st, code), public=get_public(st, code)))
                 if path == '/api/residency/board':
                     return j(_board_from_query(st, q))
                 if path == '/api/residency/polls':
@@ -911,8 +846,6 @@ def route(app, method, path, q, headers, body=b''):
                     return j(upload(st, headers, body))
                 if path == '/api/residency/rules':
                     return j(save_rules(st, headers, body))
-                if path == '/api/residency/newkey':
-                    return j(new_key(st, headers, body))
                 if path == '/api/residency/public':
                     return j(set_public(st, headers, body))
         return j({'error': 'not found'}, 404)

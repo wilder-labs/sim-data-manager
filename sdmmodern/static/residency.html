@@ -44,7 +44,9 @@ ul.list{margin:6px 0 0 18px;padding:0}
 <main>
 <section id="s-code"><h2>1. Residency</h2>
 <div class="row"><div><label for="code">Residency code (letters, numbers, dashes)</label><input id="code" maxlength="24" placeholder="nwrc" autocomplete="off"></div>
+<div id="keybox" hidden><label for="key">Admin key</label><input id="key" type="password" autocomplete="off" style="width:240px" placeholder="the site admin key"></div>
 <button id="load">Open</button><span id="rmsg" class="mute"></span></div>
+<div id="keyhint" class="mute" hidden style="margin-top:6px">This site keeps rosters private until you switch a residency to public. Type the admin key once; this browser remembers it.</div>
 <div id="rsum" class="mute" style="margin-top:8px"></div></section>
 
 <section id="s-up" hidden><h2>2. Roster file</h2>
@@ -52,9 +54,8 @@ ul.list{margin:6px 0 0 18px;padding:0}
 <div class="row" style="margin-top:8px">
 <div><label for="file">File</label><input id="file" type="file" accept=".xlsx,.csv"></div>
 <div><label for="rname">Residency name (optional)</label><input id="rname" maxlength="80"></div>
-<div id="keybox" hidden><label for="key">Key (the site admin key, or this residency's own key)</label><input id="key" type="password" autocomplete="off" style="width:260px"></div>
-<button id="up" class="pri">Upload</button><button id="upany" hidden>Save anyway</button><button id="newkey" hidden title="Admin key only. Makes a key for this residency code, or replaces its old key.">Make or replace this residency's key</button></div>
-<div id="keyshow" style="margin-top:8px"></div><div id="upmsg" style="margin-top:8px"></div></section>
+<button id="up" class="pri">Upload</button><button id="upany" hidden>Save anyway</button></div>
+<div id="upmsg" style="margin-top:8px"></div></section>
 
 <section><h2>3. Dates</h2>
 <div class="row">
@@ -145,9 +146,10 @@ function preset(){var p=$('pre').value;if(p==='cu'||!st.last)return;var last=par
 $('pre').onchange=preset;
 $('from').onchange=$('to').onchange=function(){$('pre').value='cu'};
 /* api */
-function keyed(opts){opts=opts||{};if(st.needs_key&&$('key')&&$('key').value){opts.headers=Object.assign({},opts.headers||{},{'X-Residency-Key':$('key').value})}return opts}
+var KEYN='sdm_res_key';
+function keyed(opts){opts=opts||{};if(st.needs_key&&$('key')&&$('key').value.trim()){opts.headers=Object.assign({},opts.headers||{},{'X-Residency-Key':$('key').value.trim()})}return opts}
 function api(path,opts){opts=keyed(opts);return fetch(path,opts).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||('Error '+r.status));return j})})}
-function post(path,obj){var h={'Content-Type':'application/json','X-SDM':'1'};if(st.needs_key)h['X-Residency-Key']=$('key').value;return api(path,{method:'POST',headers:h,body:JSON.stringify(obj)})}
+function post(path,obj){var h={'Content-Type':'application/json','X-SDM':'1'};if(st.needs_key)h['X-Residency-Key']=$('key').value.trim();return api(path,{method:'POST',headers:h,body:JSON.stringify(obj)})}
 function dl(url){if(!st.needs_key){location.href=url;return}
  fetch(url,keyed()).then(function(r){if(!r.ok)return r.json().then(function(j){throw new Error(j.error||('Error '+r.status))});
   var cd=r.headers.get('Content-Disposition')||'',m=/filename="([^"]+)"/.exec(cd),name=m?m[1]:'download';
@@ -156,7 +158,7 @@ function dl(url){if(!st.needs_key){location.href=url;return}
 function code(){return $('code').value.trim().toLowerCase()}
 function init(){api('/api/residency/status').then(function(s){
  st.can_write=s.can_write;st.needs_key=s.needs_key;st.first=s.first_date;st.last=s.last_date;
- $('s-up').hidden=!s.can_write&&!s.needs_key;$('keybox').hidden=!s.needs_key;$('newkey').hidden=!s.needs_key;$('saver').hidden=!s.can_write;
+ $('s-up').hidden=!s.can_write&&!s.needs_key;$('keybox').hidden=!s.needs_key;$('keyhint').hidden=!s.needs_key;$('saver').hidden=!s.can_write;
  if(!s.can_write&&s.needs_key){$('s-up').hidden=true}
  if(s.first_date){$('drange').textContent='Data covers '+s.first_date+' to '+s.last_date;$('from').min=$('to').min=s.first_date;$('from').max=$('to').max=s.last_date}
  preset();var c=ls('sdm_res_code');if(c){$('code').value=c;openRes()}
@@ -179,7 +181,6 @@ function doUpload(any){var f=$('file').files[0];if(!code()){$('upmsg').innerHTML
  .then(function(j){$('up').disabled=false;var h='';
   var pr=j.problems||[];
   var errs=pr.filter(function(p){return p.level!=='note'}),warns=pr.filter(function(p){return p.level==='note'});
-  if(j.new_key)showKey(code(),j.new_key);
   if(j.saved)h+='<div class="ok">Saved. '+esc(j.roster.counts.stables)+' stables for '+esc(j.roster.counts.members)+' members.</div>';
   else h+='<div class="err">Not saved. Fix the problems below, or press Save anyway.</div>';
   $('upany').hidden=j.saved;
@@ -190,11 +191,6 @@ function doUpload(any){var f=$('file').files[0];if(!code()){$('upmsg').innerHTML
   if(m.no_races.length)h+='<div class="mute">Found but no races yet: '+esc(m.no_races.slice(0,30).join(', '))+(m.no_races.length>30?'…':'')+'</div>';
   $('upmsg').innerHTML=h;if(j.saved){st.roster=j.roster;$('code').value=j.roster.code;ls('sdm_res_code',j.roster.code);showRoster();enable(true);openRes()}
  }).catch(function(e){$('up').disabled=false;$('upmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
-function showKey(c,k){$('keyshow').innerHTML='<div style="border:2px solid var(--warn);border-radius:8px;padding:10px"><b>Key for "'+esc(c)+'":</b> <code id="kval" style="user-select:all;font-size:15px">'+esc(k)+'</code> <button id="kcopy">Copy</button><div class="warn">Copy it now. It is shown only once and cannot be looked up later. Whoever has it can upload and change the rules for "'+esc(c)+'" only.</div></div>';
- $('kcopy').onclick=function(){try{navigator.clipboard.writeText(k).then(function(){$('kcopy').textContent='Copied'})}catch(e){var r=document.createRange();r.selectNodeContents($('kval'));var g=getSelection();g.removeAllRanges();g.addRange(r);$('kcopy').textContent='Press Ctrl+C'}}}
-$('newkey').onclick=function(){if(!code()){$('upmsg').innerHTML='<span class="err">Enter a residency code first.</span>';return}
- if(!confirm('Make a new key for "'+code()+'"? Any old key for it stops working.'))return;
- post('/api/residency/newkey',{code:code()}).then(function(j){showKey(j.code,j.new_key);$('upmsg').innerHTML=''}).catch(function(e){$('upmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
 $('up').onclick=function(){doUpload(false)};$('upany').onclick=function(){doUpload(true)};
 $('saver').onclick=function(){post('/api/residency/rules',{code:code(),rule:getRule()}).then(function(){$('rulemsg').innerHTML='<span class="ok">Rules saved.</span>'}).catch(function(e){$('rulemsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
 /* leaderboard */
@@ -263,6 +259,8 @@ $('publinks').onclick=function(e){var b=e.target.closest('.pcopy');if(!b)return;
 $('pub-save').onclick=function(){$('pubmsg').textContent='Saving…';
  post('/api/residency/public',{code:code(),enabled:$('pub-on').value==='1',range:$('pub-r').value,skin:$('pub-s').value}).then(function(j){pubShow(j.public);$('pubmsg').innerHTML='<span class="ok">Saved. '+(j.public?'This residency\'s boards are public.':'This residency is private again.')+'</span>'}).catch(function(e){$('pubmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})};
 
+try{var sk=ls(KEYN);if(sk)$('key').value=sk}catch(e){}
+$('key').onchange=function(){ls(KEYN,this.value.trim())};
 init();
 })();
 </script></body></html>
