@@ -772,6 +772,7 @@ html[data-theme="paper"] dialog a:not(.viewerlink){color:var(--accent);text-deco
     <button data-act="t25season">The Season</button>
     <hr><button data-act="t25import">Add a Top 25 Speeds File…</button>
     <button data-act="t25about">About These Lists</button></div></div>
+  <div class="menu"><button>Residency</button><div class="drop"><button data-act="resopen">Open Residency Leaderboards</button></div></div>
   <div class="menu"><button>Help</button><div class="drop"><button data-act="guide">Open the Guide (in your browser)</button><button data-act="help">How to Use This</button><button data-act="mail">Message the developer</button><button data-act="update">Check for Updates</button><button data-act="about">About Sim Data Manager</button><button data-act="exit">Exit Sim Data Manager</button></div></div>
   <a id="datachip" class="datachip" href="http://denovo.eu5.net/SSSarch.php" target="_blank" rel="noopener" style="margin-left:auto" title="The dates your race data covers. Click to open the denovo archive in your browser and check whether a newer pack is out.">Race data</a>
   <button type="button" id="panelbtn" title="Show or hide the search box to make room for results">Panel</button>
@@ -802,7 +803,8 @@ html[data-theme="paper"] dialog a:not(.viewerlink){color:var(--accent);text-deco
       <button type="button" id="stakes" title="Every stakes race (stakes and graded) this calendar year, counted from January 1 to the newest race in the database. One row per race, with the winner.">&#127942; Stakes Races This Year</button>
       <button type="button" id="debut" title="Horses whose very first race came this calendar year, one row each (the debut), fastest speed figure first. The sidebar covers all of them.">&#127775; First Time Starters This Year</button>
       <button type="button" id="ownrank" title="Every trainer with at least 25 runners this calendar year, ranked by wins. Click any column heading to re-sort. Computer-run stables (names starting with *) are left out.">&#127941; Trainer Rankings This Year</button>
-      <button type="button" id="t25btn" title="zapspride's weekly Top 25 Speeds lists from the Black Type Bugler: this week's Overall, 2-year-old and 3-year-old lists, and the whole season. Read from files on this computer.">&#128200; Top 25 Speeds of the Week</button></div>
+      <button type="button" id="t25btn" title="zapspride's weekly Top 25 Speeds lists from the Black Type Bugler: this week's Overall, 2-year-old and 3-year-old lists, and the whole season. Read from files on this computer.">&#128200; Top 25 Speeds of the Week</button>
+      <button type="button" id="resbtn" title="Residency leaderboards: load a roster of stables, pick dates and a scoring matrix, and get standings with downloads. Uses the games already in this database.">&#127937; Residency Leaderboards</button></div>
   </fieldset>
 </form>
 
@@ -1361,6 +1363,7 @@ function alertBox(m){dialog(`<h3>Sim Data Manager</h3><div class="msg err">${esc
 function toast(m){dialog(`<h3>Sim Data Manager</h3><div class="msg ok">${esc(m)}</div><div class="btns"><button class="primary" onclick="closeDlg()">OK</button></div>`)}
 async function wkDate(w){try{return (await api('/api/date?week='+w)).date}catch(e){return 'week '+w}}
 const actions={
+  resopen(){openRes()},
   t25week(){openT25('week')},
   t25season(){openT25('season')},
   t25import(){
@@ -1724,6 +1727,14 @@ function openT25(view){const o=document.getElementById('t25'),f=document.getElem
   if(f.getAttribute('src')!==u)f.setAttribute('src',u);o.hidden=false;setTimeout(()=>{try{f.focus()}catch(e){}},50)}
 window.closeT25=function(){document.getElementById('t25').hidden=true;try{document.getElementById('t25btn').focus()}catch(e){}};
 document.getElementById('t25btn').addEventListener('click',()=>openT25('week'));
+</script>
+<div id="res" hidden><iframe id="resf" title="Residency Leaderboards"></iframe></div>
+<style>#res{position:fixed;inset:0;z-index:900;background:var(--bg)}#res iframe{display:block;border:0;width:100%;height:100%}</style>
+<script>
+function openRes(){const o=document.getElementById('res'),f=document.getElementById('resf');
+  if(!f.getAttribute('src'))f.setAttribute('src','/residency');o.hidden=false;setTimeout(()=>{try{f.focus()}catch(e){}},50)}
+window.closeRes=function(){document.getElementById('res').hidden=true;try{document.getElementById('resbtn').focus()}catch(e){}};
+document.getElementById('resbtn').addEventListener('click',openRes);
 </script>
 </body>
 </html>

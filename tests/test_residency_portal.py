@@ -54,7 +54,7 @@ class Base(unittest.TestCase):
             db.execute('INSERT INTO owners(id,oname,o15,o12,o10) VALUES(?,?,?,?,?)', (i, n.upper(), n[:15], n[:12], n[:10]))
         self.rn = 2000
         os.environ.pop('SDM_HOSTED', None); os.environ.pop('SDM_RESIDENCY_KEY', None)
-        P._writes[:] = []
+        P._writes[:] = []; P._bad[:] = []
         r = R.build('r.csv', csv_bytes(ROSTER_ROWS), code='tst')
         self.roster = r
         R.save(r, R.residency_dir(self.st.path, 'tst'))
@@ -241,6 +241,71 @@ class Routes(Base):
         self.assertEqual(self.up(headers=dict(self.H, **{'X-Residency-Key': 'sesame'}))[0], 200)
         # reading needs no key
         self.assertEqual(self.call('GET', '/api/residency/roster', {'code': 'tst'})[0], 200)
+
+    def hosted(self, admin='sesame'):
+        os.environ['SDM_HOSTED'] = '1'; os.environ['SDM_RESIDENCY_KEY'] = admin
+
+    def hdr(self, key):
+        return dict(self.H, **{'X-Residency-Key': key})
+
+    def test_admin_creates_residency_and_gets_its_key(self):
+        self.hosted()
+        j = json.loads(self.up(headers=self.hdr('sesame'), code='orph')[2])
+        key = j['new_key']; self.assertTrue(j['saved']); self.assertTrue(key and len(key) >= 20)
+        raw = open(P._key_path(self.st, 'orph')).read()
+        self.assertNotIn(key, raw)                                   # only the scrambled form is stored
+        j2 = json.loads(self.up(headers=self.hdr(key), code='orph')[2])   # its own key works
+        self.assertTrue(j2['saved']); self.assertIsNone(j2['new_key'])
+        body = json.dumps(dict(code='orph', rule=dict(points=[5]))).encode()
+        self.assertEqual(self.call('POST', '/api/residency/rules', headers=self.hdr(key), body=body)[0], 200)
+
+    def test_residency_key_is_limited_to_its_own_residency(self):
+        self.hosted()
+        k1 = json.loads(self.up(headers=self.hdr('sesame'), code='aaa')[2])['new_key']
+        json.loads(self.up(headers=self.hdr('sesame'), code='bbb')[2])
+        self.assertEqual(self.up(headers=self.hdr(k1), code='bbb')[0], 403)
+        self.assertEqual(self.up(headers=self.hdr(k1), code='ccc')[0], 403)          # cannot create a new residency
+        self.assertFalse(os.path.exists(R.residency_dir(self.st.path, 'ccc')))
+        nk = json.dumps(dict(code='aaa')).encode()
+        self.assertEqual(self.call('POST', '/api/residency/newkey', headers=self.hdr(k1), body=nk)[0], 403)
+        body = json.dumps(dict(code='bbb', rule=dict(points=[5]))).encode()
+        self.assertEqual(self.call('POST', '/api/residency/rules', headers=self.hdr(k1), body=body)[0], 403)
+
+    def test_newkey_replaces_old_key(self):
+        self.hosted()
+        k1 = json.loads(self.up(headers=self.hdr('sesame'), code='aaa')[2])['new_key']
+        s, _, data, _ = self.call('POST', '/api/residency/newkey', headers=self.hdr('sesame'), body=json.dumps(dict(code='aaa')).encode())
+        k2 = json.loads(data)['new_key']; self.assertEqual(s, 200); self.assertNotEqual(k1, k2)
+        self.assertEqual(self.up(headers=self.hdr(k1), code='aaa')[0], 403)
+        self.assertEqual(self.up(headers=self.hdr(k2), code='aaa')[0], 200)
+
+    def test_newkey_for_new_code_then_residency_key_can_upload(self):
+        self.hosted()
+        k = json.loads(self.call('POST', '/api/residency/newkey', headers=self.hdr('sesame'), body=json.dumps(dict(code='fresh')).encode())[2])['new_key']
+        self.assertEqual(self.up(headers=self.hdr(k), code='fresh')[0], 200)
+
+    def test_newkey_local_refused_and_needs_header(self):
+        nk = json.dumps(dict(code='aaa')).encode()
+        self.assertEqual(self.call('POST', '/api/residency/newkey', headers=self.H, body=nk)[0], 400)
+        self.hosted()
+        self.assertEqual(self.call('POST', '/api/residency/newkey', headers={}, body=nk)[0], 403)
+
+    def test_wrong_keys_are_counted_and_blocked(self):
+        self.hosted()
+        for i in range(P.MAX_BAD_KEYS_PER_HOUR):
+            self.assertEqual(self.up(headers=self.hdr('guess%d' % i), code='tst')[0], 403)
+        self.assertEqual(self.up(headers=self.hdr('sesame'), code='tst')[0], 429)      # even the right key waits
+
+    def test_empty_key_never_matches_residency_key(self):
+        self.hosted()
+        json.loads(self.up(headers=self.hdr('sesame'), code='aaa')[2])
+        self.assertEqual(self.up(headers=self.hdr(''), code='aaa')[0], 403)
+
+    def test_roster_view_says_if_residency_has_key(self):
+        self.hosted()
+        self.up(headers=self.hdr('sesame'), code='aaa')
+        j = json.loads(self.call('GET', '/api/residency/roster', {'code': 'aaa'})[2])
+        self.assertTrue(j['has_key']); self.assertNotIn('hash', json.dumps(j))
 
     def test_bad_code_and_traversal(self):
         for c in ('../evil', 'a/b', '', 'A B', '..', 'x' * 40):
