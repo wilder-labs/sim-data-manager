@@ -196,6 +196,31 @@ class Exports(Base):
         json.dumps(b)
 
 
+class Finishes(Base):
+    def test_finish_counts_ignore_scoring(self):
+        for i, fin in enumerate([1, 2, 3, 4, 5, 6, 7, 8, 11, None]):
+            day = '2026-10-06'; r = self.race(day); self.enter(r, day, 1, fin)
+        r = self.race('2026-10-07'); self.enter(r, '2026-10-07', 2, 2)
+        b = self.board(rule={'points': [1]})                       # scoring only pays 1st; counts must not care
+        ann = self.member(b, 'Ann')
+        self.assertEqual(ann['finishes'], [1, 2, 1, 1, 1, 1, 1, 2]); self.assertEqual(ann['nofin'], 1)
+        self.assertEqual(ann['starts'], 11)
+        rows = list(csv.reader(io.StringIO(P.to_csv(b, 'finishes'))))
+        self.assertEqual(rows[0], ['member', 'master_stable', 'stable', 'starts', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th_or_worse', 'no_finish_recorded'])
+        alpha = next(r for r in rows if r[2] == 'Alpha')
+        self.assertEqual(alpha[3:], ['10', '1', '1', '1', '1', '1', '1', '1', '2', '1'])
+        self.assertNotIn('points', ','.join(rows[0]))
+        rows = list(csv.reader(io.StringIO(P.to_csv(b, 'finishes_members'))))
+        self.assertEqual(rows[0][:4], ['member', 'masters', 'stables', 'starts'])
+        self.assertEqual(next(r for r in rows if r[0] == 'Ann')[3], '11')
+
+    def test_export_route(self):
+        app = App(self.st)
+        for kind in ('finishes', 'finishes_members'):
+            s, c, data, extra = P.route(app, 'GET', '/api/residency/export', dict(code='tst', **{'from': '2026-10-05', 'to': '2026-10-11'}, kind=kind), {})
+            self.assertEqual(s, 200); self.assertIn(kind, extra['Content-Disposition'])
+
+
 class Routes(Base):
     H = {'X-SDM': '1'}
 

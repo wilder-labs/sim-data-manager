@@ -101,12 +101,15 @@ def data_range(store):
 
 # ---------------------------------------------------------------- the leaderboard
 def _zero():
-    return dict(starts=0, wins=0, seconds=0, thirds=0, points=0, bonus=0)
+    # finishes: how many 1st, 2nd ... 7th, then 8th or worse; nofin: started but no finish place recorded
+    return dict(starts=0, wins=0, seconds=0, thirds=0, points=0, bonus=0, finishes=[0] * 8, nofin=0)
 
 
 def _add(t, f):
-    for k in ('starts', 'wins', 'seconds', 'thirds', 'points', 'bonus'):
+    for k in ('starts', 'wins', 'seconds', 'thirds', 'points', 'bonus', 'nofin'):
         t[k] += f[k]
+    for i in range(8):
+        t['finishes'][i] += f['finishes'][i]
 
 
 def compute(store, roster, d_from, d_to, rule=None, age='all', races='all'):
@@ -166,7 +169,9 @@ def compute(store, roster, d_from, d_to, rule=None, age='all', races='all'):
                 a = acc[id(line)]
                 a['starts'] += 1
                 if not fin or fin < 1:
+                    a['nofin'] += 1
                     continue
+                a['finishes'][min(fin, 8) - 1] += 1
                 if fin == 1: a['wins'] += 1
                 elif fin == 2: a['seconds'] += 1
                 elif fin == 3: a['thirds'] += 1
@@ -211,10 +216,23 @@ def compute(store, roster, d_from, d_to, rule=None, age='all', races='all'):
                 unmatched=unmatched, no_races=quiet, members=out)
 
 
+FIN_HEAD = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th_or_worse']
+
+
 def to_csv(board, kind):
     b = io.StringIO()
     w = csv.writer(b)
-    if kind == 'stables':
+    if kind in ('finishes', 'finishes_members'):          # plain finish counts, no scoring
+        by_stable = kind == 'finishes'
+        w.writerow(['member'] + (['master_stable', 'stable'] if by_stable else ['masters', 'stables']) + ['starts'] + FIN_HEAD + ['no_finish_recorded'])
+        for m in sorted(board['members'], key=lambda t: t['name'].lower()):
+            if by_stable:
+                for x in m['masters']:
+                    for s in x['stables']:
+                        w.writerow([m['name'], x['name'], s['name'], s['starts']] + s['finishes'] + [s['nofin']])
+            else:
+                w.writerow([m['name'], len(m['masters']), sum(len(x['stables']) for x in m['masters']), m['starts']] + m['finishes'] + [m['nofin']])
+    elif kind == 'stables':
         w.writerow(['rank', 'member', 'master_stable', 'stable', 'starts', 'wins', 'seconds', 'thirds', 'place_points', 'bonus_points', 'total'])
         for m in board['members']:
             for x in m['masters']:
@@ -456,8 +474,8 @@ def route(app, method, path, q, headers, body=b''):
                     stem = '%s-%s-to-%s' % (b['code'], b['period']['from'], b['period']['to'])
                     if kind == 'json':
                         return 200, 'application/json', json.dumps(b, indent=1).encode(), {'Content-Disposition': 'attachment; filename="%s.json"' % stem}
-                    if kind not in ('members', 'stables'):
-                        raise PortalError('kind must be members, stables or json.')
+                    if kind not in ('members', 'stables', 'finishes', 'finishes_members'):
+                        raise PortalError('kind must be members, stables, finishes, finishes_members or json.')
                     return 200, 'text/csv; charset=utf-8', ('﻿' + to_csv(b, kind)).encode('utf-8'), {'Content-Disposition': 'attachment; filename="%s-%s.csv"' % (stem, kind)}
         elif method == 'POST':
             with app.lock:

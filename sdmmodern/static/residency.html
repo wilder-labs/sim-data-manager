@@ -74,7 +74,7 @@ ul.list{margin:6px 0 0 18px;padding:0}
 
 <section><h2>5. Leaderboard</h2>
 <div class="row"><button id="go" class="pri" disabled>Build leaderboard</button>
-<button id="d-m" disabled>Download standings (CSV)</button><button id="d-s" disabled>Download by stable (CSV)</button><button id="d-j" disabled>Download JSON</button></div>
+<button id="d-m" disabled>Download standings (CSV)</button><button id="d-s" disabled>Download by stable (CSV)</button><button id="d-f" disabled title="How many 1st, 2nd, 3rd ... 7th and 8th-or-worse finishes each stable had. No points.">Download finish counts (CSV)</button><button id="d-fm" disabled title="The same finish counts added up per member.">Finish counts by member (CSV)</button><button id="d-j" disabled>Download JSON</button></div>
 <div id="bmsg" class="mute" style="margin:8px 0"></div>
 <div class="tablewrap"><table id="tbl" hidden><thead><tr><th class="rk">#</th><th class="l">Member</th><th>Starts</th><th>1st</th><th>2nd</th><th>3rd</th><th>Place pts</th><th>Bonus</th><th>Total</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div id="bnote"></div></section>
@@ -134,7 +134,7 @@ function openRes(){var c=code();if(!c)return;$('rmsg').textContent='';
   $('rmsg').innerHTML='<span class="warn">'+esc(e.message)+'</span>'})}
 function showRoster(){var r=st.roster,n=r.counts||{};
  $('rsum').innerHTML='<b>'+esc(r.residency||r.code)+'</b>: '+esc(n.members)+' members, '+esc(n.masters)+' master stables, '+esc(n.stables)+' stables'+(r.source?' (from '+esc(r.source)+')':'')}
-function enable(on){['go'].forEach(function(i){$(i).disabled=!on});['d-m','d-s','d-j'].forEach(function(i){$(i).disabled=true})}
+function enable(on){['go'].forEach(function(i){$(i).disabled=!on});['d-m','d-s','d-f','d-fm','d-j'].forEach(function(i){$(i).disabled=true})}
 $('load').onclick=openRes;$('code').onkeydown=function(e){if(e.key==='Enter')openRes()};
 /* upload */
 function fileB64(f){return new Promise(function(ok,no){var r=new FileReader();r.onload=function(){var s=String(r.result);ok(s.slice(s.indexOf(',')+1))};r.onerror=no;r.readAsDataURL(f)})}
@@ -168,7 +168,7 @@ function qs(extra){var r=getRule();var b=['stk','g3','g2','g1'].map(function(k){
  return 'code='+encodeURIComponent(code())+'&from='+$('from').value+'&to='+$('to').value+'&pts='+encodeURIComponent(r.points.join(','))+'&bonus='+encodeURIComponent(b)+'&bonus_on='+r.bonus_on+'&age='+$('age').value+'&races='+$('races').value+(extra||'')}
 var open={};
 function build(){ $('bmsg').textContent='Working…';
- api('/api/residency/board?'+qs()).then(function(b){st.board=b;open={};draw();['d-m','d-s','d-j'].forEach(function(i){$(i).disabled=false});
+ api('/api/residency/board?'+qs()).then(function(b){st.board=b;open={};draw();['d-m','d-s','d-f','d-fm','d-j'].forEach(function(i){$(i).disabled=false});
   $('bmsg').textContent=b.period.from+' to '+b.period.to+' ('+b.period.days+' days). Built '+b.generated_at.replace('T',' ').replace('Z',' UTC')+'.'
  }).catch(function(e){$('bmsg').innerHTML='<span class="err">'+esc(e.message)+'</span>';$('tbl').hidden=true})}
 function cells(x){return '<td>'+x.starts+'</td><td>'+x.wins+'</td><td>'+x.seconds+'</td><td>'+x.thirds+'</td><td>'+x.points+'</td><td>'+x.bonus+'</td><td class="tot">'+x.total+'</td>'}
@@ -187,6 +187,8 @@ $('tb').onclick=tog;$('tb').onkeydown=tog;
 $('go').onclick=build;
 $('d-m').onclick=function(){location.href='/api/residency/export?'+qs('&kind=members')};
 $('d-s').onclick=function(){location.href='/api/residency/export?'+qs('&kind=stables')};
+$('d-f').onclick=function(){location.href='/api/residency/export?'+qs('&kind=finishes')};
+$('d-fm').onclick=function(){location.href='/api/residency/export?'+qs('&kind=finishes_members')};
 $('d-j').onclick=function(){location.href='/api/residency/export?'+qs('&kind=json')};
 init();
 })();
