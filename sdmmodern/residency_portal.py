@@ -640,6 +640,29 @@ def _check_write(store, headers, code, admin_only=False):
     return admin
 
 
+def _check_read(store, headers, code):
+    """Hosted site: a residency's roster and boards are private until the admin makes it public.
+    The admin key or the residency's own key opens them."""
+    if not _hosted() or get_public(store, code):
+        return
+    sent = headers.get('X-Residency-Key', '')
+    if sent:
+        now = time.time()
+        with _wlock:
+            _bad[:] = [t for t in _bad if now - t < 3600]
+            if len(_bad) >= MAX_BAD_KEYS_PER_HOUR:
+                raise PortalError('Too many wrong keys. Try again later.', 429)
+        akey = os.environ.get('SDM_RESIDENCY_KEY', '')
+        if akey and hmac.compare_digest(sent.encode('utf-8', 'ignore'), akey.encode('utf-8')):
+            return
+        if has_key(store, code) and _key_ok(store, code, sent):
+            return
+        with _wlock:
+            _bad.append(now)
+        raise PortalError('That key is not right.', 403)
+    raise PortalError('This residency is private. Enter its key.', 403)
+
+
 def roster_view(roster):
     return dict(code=roster['code'], residency=roster.get('residency', ''), built=roster.get('built'), counts=roster['counts'],
                 source=roster.get('source', {}).get('file', ''),
@@ -718,6 +741,102 @@ def new_key(store, headers, body):
     return dict(code=code, new_key=_set_key(store, code))
 
 
+# ---------------------------------------------------------------- public boards (live, read-only, switched on by the admin)
+PUBLIC_RANGES = ('latest', 'this_week', 'last_week', 'last_4', 'season')
+PUBLIC_BOARDS = ('claiming', 'overall', 'standings')
+LIVE_TTL = 300
+_live_cache = {}
+_live_lock = threading.Lock()
+
+
+def _public_path(store, code):
+    return os.path.join(_dir(store, code), 'public.json')
+
+
+def get_public(store, code):
+    """The saved public settings for a residency, or None when it is not public."""
+    d = _read_json(_public_path(store, code))
+    if isinstance(d, dict) and d.get('enabled') is True:
+        return dict(enabled=True, range=d.get('range') if d.get('range') in PUBLIC_RANGES else 'latest',
+                    skin=d.get('skin') if d.get('skin') in SKINS else 'plain')
+    return None
+
+
+def set_public(store, headers, body):
+    """Admin only on the hosted site. Turns the public live boards on or off for one residency."""
+    if headers.get('X-SDM') != '1':
+        raise PortalError('Request refused.', 403)
+    a = _body(body)
+    code = _code(a.get('code'))
+    _check_write(store, headers, code, admin_only=True)
+    load_roster(store, code)
+    on = a.get('enabled') is True
+    rng = a.get('range') if a.get('range') in PUBLIC_RANGES else 'latest'
+    skin = a.get('skin') if a.get('skin') in SKINS else 'plain'
+    _write_json(_public_path(store, code), dict(enabled=on, range=rng, skin=skin))
+    with _live_lock:
+        _live_cache.clear()
+    return dict(code=code, public=get_public(store, code))
+
+
+def live_range(store, rng):
+    """Dates for a public board, counted back from the newest day in the database. Weeks run Monday to Sunday."""
+    lo, hi = data_range(store)
+    if not hi:
+        raise PortalError('No race data is loaded yet.', 404)
+    last = datetime.date.fromisoformat(hi)
+    dow = last.weekday()                       # Monday = 0
+    monday = last - datetime.timedelta(days=dow)
+    last_sun = last if dow == 6 else monday - datetime.timedelta(days=1)
+    if rng == 'this_week':
+        f, t = monday, last
+    elif rng == 'last_week':
+        t = last_sun; f = t - datetime.timedelta(days=6)
+    elif rng == 'last_4':
+        t = last_sun; f = t - datetime.timedelta(days=27)
+    elif rng == 'season':
+        f, t = datetime.date(last.year, 1, 1), last
+    else:                                      # latest: the newest finished week
+        t = last_sun; f = t - datetime.timedelta(days=6)
+    if lo and f.isoformat() < lo:
+        f = datetime.date.fromisoformat(lo)
+    return f.isoformat(), t.isoformat()
+
+
+def live_page(store, q):
+    """A public board page. 404 unless the admin switched this residency on. Cached for a few minutes."""
+    try:
+        code = _code(q.get('code'))
+    except PortalError:
+        raise PortalError('Not found.', 404)
+    pub = get_public(store, code)
+    if not pub:
+        raise PortalError('Not found.', 404)
+    board = q.get('board', 'claiming')
+    skin = q.get('skin') or pub['skin']
+    rng = q.get('range') or pub['range']
+    if board not in PUBLIC_BOARDS or skin not in SKINS or rng not in PUBLIC_RANGES:
+        raise PortalError('Not found.', 404)
+    d_from, d_to = live_range(store, rng)
+    key = (code, board, skin, d_from, d_to, os.path.getmtime(os.path.join(_dir(store, code), 'roster.json')) if os.path.isfile(os.path.join(_dir(store, code), 'roster.json')) else 0,
+           os.path.getmtime(os.path.join(_dir(store, code), 'rules.json')) if os.path.isfile(os.path.join(_dir(store, code), 'rules.json')) else 0)
+    now = time.time()
+    with _live_lock:
+        hit = _live_cache.get(key)
+        if hit and now - hit[0] < LIVE_TTL:
+            return hit[1]
+    roster = load_roster(store, code)
+    page = embed_html(store, roster, d_from, d_to, board, skin, load_rule(store, code), 'all')
+    page = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            '<meta name="robots" content="noindex"><title>%s</title><style>html,body{margin:0;background:transparent}body{padding:2px}</style></head><body>%s</body></html>'
+            % (_X((roster.get('residency') or code.upper()) + ' leaderboard'), page)).encode('utf-8')
+    with _live_lock:
+        if len(_live_cache) > 200:
+            _live_cache.clear()
+        _live_cache[key] = (now, page)
+    return page
+
+
 # ---------------------------------------------------------------- routes
 def _page():
     with open(os.path.join(STATIC, 'residency.html'), 'rb') as f:
@@ -741,13 +860,21 @@ def route(app, method, path, q, headers, body=b''):
         if method == 'GET':
             if path == '/residency':
                 return 200, 'text/html; charset=utf-8', _page(), {}
+            if path == '/api/residency/live':
+                with app.lock:
+                    page = live_page(st, q)
+                return 200, 'text/html; charset=utf-8', page, {
+                    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors *",
+                    'Cache-Control': 'public, max-age=300'}
             with app.lock:
+                if path in ('/api/residency/roster', '/api/residency/board', '/api/residency/polls', '/api/residency/embed', '/api/residency/export'):
+                    _check_read(st, headers, _code(q.get('code')))
                 if path == '/api/residency/status':
                     lo, hi = data_range(st)
                     return j(dict(can_write=can_write(), needs_key=_hosted(), first_date=lo, last_date=hi))
                 if path == '/api/residency/roster':
                     code = _code(q.get('code'))
-                    return j(dict(roster=roster_view(load_roster(st, code)), rule=load_rule(st, code), has_key=has_key(st, code)))
+                    return j(dict(roster=roster_view(load_roster(st, code)), rule=load_rule(st, code), has_key=has_key(st, code), public=get_public(st, code)))
                 if path == '/api/residency/board':
                     return j(_board_from_query(st, q))
                 if path == '/api/residency/polls':
@@ -786,6 +913,8 @@ def route(app, method, path, q, headers, body=b''):
                     return j(save_rules(st, headers, body))
                 if path == '/api/residency/newkey':
                     return j(new_key(st, headers, body))
+                if path == '/api/residency/public':
+                    return j(set_public(st, headers, body))
         return j({'error': 'not found'}, 404)
     except PortalError as e:
         return j({'error': str(e)}, e.code)
@@ -799,7 +928,8 @@ def serve(handler, app, method, path, q, body=b''):
     handler.send_response(code)
     handler.send_header('Content-Type', ctype)
     handler.send_header('Content-Length', str(len(data)))
-    handler.send_header('Cache-Control', 'no-store')
+    if 'Cache-Control' not in extra:
+        handler.send_header('Cache-Control', 'no-store')
     for k, v in extra.items():
         handler.send_header(k, v)
     handler.end_headers()

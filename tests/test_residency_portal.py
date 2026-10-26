@@ -409,8 +409,9 @@ class Routes(Base):
         self.assertEqual(self.up(headers=self.H)[0], 403)
         self.assertEqual(self.up(headers=dict(self.H, **{'X-Residency-Key': 'wrong'}))[0], 403)
         self.assertEqual(self.up(headers=dict(self.H, **{'X-Residency-Key': 'sesame'}))[0], 200)
-        # reading needs no key
-        self.assertEqual(self.call('GET', '/api/residency/roster', {'code': 'tst'})[0], 200)
+        # reading a private residency needs its key
+        self.assertEqual(self.call('GET', '/api/residency/roster', {'code': 'tst'})[0], 403)
+        self.assertEqual(self.call('GET', '/api/residency/roster', {'code': 'tst'}, headers={'X-Residency-Key': 'sesame'})[0], 200)
 
     def hosted(self, admin='sesame'):
         os.environ['SDM_HOSTED'] = '1'; os.environ['SDM_RESIDENCY_KEY'] = admin
@@ -474,8 +475,65 @@ class Routes(Base):
     def test_roster_view_says_if_residency_has_key(self):
         self.hosted()
         self.up(headers=self.hdr('sesame'), code='aaa')
-        j = json.loads(self.call('GET', '/api/residency/roster', {'code': 'aaa'})[2])
+        j = json.loads(self.call('GET', '/api/residency/roster', {'code': 'aaa'}, headers={'X-Residency-Key': 'sesame'})[2])
         self.assertTrue(j['has_key']); self.assertNotIn('hash', json.dumps(j))
+
+    # ---- public boards
+    def pub(self, key, code='tst', **kw):
+        body = json.dumps(dict(code=code, **kw)).encode()
+        return self.call('POST', '/api/residency/public', headers=self.hdr(key), body=body)
+
+    def live(self, **q):
+        q.setdefault('code', 'tst')
+        return self.call('GET', '/api/residency/live', q)
+
+    def test_live_is_off_until_admin_switches_it_on(self):
+        self.hosted()
+        self.race('2026-10-01', 'Clm'); self.race('2026-10-14', 'Clm'); self.st.db.commit()
+        self.assertEqual(self.live()[0], 404)                       # not public yet
+        self.assertEqual(self.live(code='nope')[0], 404)            # same answer for a code that does not exist
+        self.assertEqual(self.pub('sesame', enabled=True)[0], 200)
+        s, ct, data, hdr = self.live()
+        self.assertEqual(s, 200); self.assertIn('text/html', ct)
+        self.assertIn(b'<table', self.live(board='standings')[2])
+        self.assertIn('frame-ancestors *', hdr['Content-Security-Policy'])
+        self.assertNotIn(b'<script', data.lower())
+        self.assertEqual(self.pub('sesame', enabled=False)[0], 200)
+        self.assertEqual(self.live()[0], 404)
+
+    def test_only_admin_can_switch_public(self):
+        self.hosted()
+        k = json.loads(self.up(headers=self.hdr('sesame'), code='aaa')[2])['new_key']
+        self.assertEqual(self.pub(k, code='aaa', enabled=True)[0], 403)   # the residency's own key is not enough
+        self.assertEqual(self.pub('', code='aaa', enabled=True)[0], 403)
+        self.assertEqual(self.call('POST', '/api/residency/public', headers={}, body=b'{}')[0], 403)
+        self.assertEqual(self.live(code='aaa')[0], 404)
+
+    def test_private_residency_reads_need_a_key_public_ones_do_not(self):
+        self.hosted()
+        for path in ('roster', 'board', 'polls', 'embed', 'export'):
+            q = {'code': 'tst', 'from': '2026-10-05', 'to': '2026-10-11', 'board': 'standings'}
+            self.assertEqual(self.call('GET', '/api/residency/' + path, q)[0], 403, path)
+            self.assertEqual(self.call('GET', '/api/residency/' + path, q, headers={'X-Residency-Key': 'bad'})[0], 403, path)
+        self.pub('sesame', enabled=True)
+        self.assertEqual(self.call('GET', '/api/residency/board', {'code': 'tst', 'from': '2026-10-05', 'to': '2026-10-11'})[0], 200)
+
+    def test_live_ranges_count_back_from_newest_day(self):
+        self.race('2026-01-02', 'Clm'); self.race('2026-10-14', 'Clm'); self.st.db.commit()          # newest day is a Wednesday
+        self.assertEqual(P.live_range(self.st, 'this_week'), ('2026-10-12', '2026-10-14'))
+        self.assertEqual(P.live_range(self.st, 'latest'), ('2026-10-05', '2026-10-11'))
+        self.assertEqual(P.live_range(self.st, 'last_week'), ('2026-10-05', '2026-10-11'))
+        f, t = P.live_range(self.st, 'last_4'); self.assertEqual(t, '2026-10-11'); self.assertEqual((datetime.date.fromisoformat(t) - datetime.date.fromisoformat(f)).days, 27)
+        self.assertEqual(P.live_range(self.st, 'season'), ('2026-01-02', '2026-10-14'))
+        self.race('2026-10-18', 'Clm'); self.st.db.commit()          # a Sunday: that week is finished
+        self.assertEqual(P.live_range(self.st, 'latest'), ('2026-10-12', '2026-10-18'))
+
+    def test_live_rejects_odd_values(self):
+        self.hosted(); self.race('2026-10-01', 'Clm'); self.race('2026-10-14', 'Clm'); self.st.db.commit(); self.pub('sesame', enabled=True)
+        for q in ({'board': 'x'}, {'skin': 'evil'}, {'range': '../..'}, {'code': '../x'}, {'code': ''}):
+            self.assertEqual(self.live(**q)[0], 404, q)
+        self.assertEqual(self.live(skin='btb')[0], 200)
+
 
     def test_bad_code_and_traversal(self):
         for c in ('../evil', 'a/b', '', 'A B', '..', 'x' * 40):

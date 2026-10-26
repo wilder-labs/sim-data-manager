@@ -22,12 +22,12 @@ sys.path.insert(0, ROOT)
 DEFAULT_URL = 'https://github.com/wilder-labs/sim-data-manager/releases/download/data/SDM-2026.zip'
 GET_OK = {'/', '/m', '/api/info', '/api/tracks', '/api/date', '/api/race-form', '/api/ping', '/healthz',
           '/top25', '/api/top25',
-          '/residency', '/api/residency/status', '/api/residency/roster', '/api/residency/board', '/api/residency/export', '/api/residency/polls', '/api/residency/embed'}           # Top 25 Speeds: read-only lists from files in the program; adding files stays off
+          '/residency', '/api/residency/status', '/api/residency/roster', '/api/residency/board', '/api/residency/export', '/api/residency/polls', '/api/residency/embed', '/api/residency/live'}           # Top 25 Speeds: read-only lists from files in the program; adding files stays off
 POST_OK = {'/api/search', '/api/owner-changes', '/api/best-speeds', '/api/current-horses', '/api/first-time-starters',
            '/api/graded-races', '/api/stakes-year', '/api/owner-rankings',
-           '/api/residency/upload', '/api/residency/rules', '/api/residency/newkey'}   # the residency write routes also need a key
+           '/api/residency/upload', '/api/residency/rules', '/api/residency/newkey', '/api/residency/public'}   # the residency write routes also need a key
 MAX_BODY = 20000                      # a search request is a few hundred bytes
-MAX_BODY_BY_PATH = {'/api/residency/upload': 4 * 1024 * 1024, '/api/residency/rules': 4000, '/api/residency/newkey': 4000}
+MAX_BODY_BY_PATH = {'/api/residency/upload': 4 * 1024 * 1024, '/api/residency/rules': 4000, '/api/residency/newkey': 4000, '/api/residency/public': 4000}
 RATE_PER_MIN = 120                    # per visitor address
 QUERY_SECONDS = int(os.environ.get('QUERY_SECONDS', '20'))   # a query running longer than this is stopped
 CACHE_PATHS = {'/api/owner-rankings', '/api/first-time-starters', '/api/stakes-year', '/api/best-speeds', '/api/graded-races'}
@@ -237,8 +237,10 @@ def build_handler(app, label, limiter, cache):
 
         def end_headers(self):
             self.send_header('X-Content-Type-Options', 'nosniff')
-            self.send_header('X-Frame-Options', 'SAMEORIGIN')   # the Top 25 Speeds screen opens inside the page; other sites still cannot frame it
             self.send_header('Referrer-Policy', 'no-referrer')
+            if self.path.split('?', 1)[0] == '/api/residency/live':
+                return super().end_headers()                    # public boards: the route sends its own strict policy and allows framing by other sites
+            self.send_header('X-Frame-Options', 'SAMEORIGIN')   # the Top 25 Speeds screen opens inside the page; other sites still cannot frame it
             self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'")
             super().end_headers()
 
