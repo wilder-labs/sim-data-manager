@@ -280,7 +280,7 @@ def _tally(store, roster, d_from, d_to, age='all'):
         lines.setdefault(s['key'], []).append(s)
     out = {}
     for s in stables:
-        out.setdefault(s['member_key'], dict(name=s['member'], stables=set(), starts=0, fin=[0] * 8, nofin=0, earn=0.0,
+        out.setdefault(s['member_key'], dict(name=s['member'], stables=set(), starts=0, fin=[0] * 8, nofin=0, earn=0.0, bps=0,
                                              cs=0, cfin=[0] * 8, sw=0, gw=0, spl=0))['stables'].add(s['key'])
     where = ['e.week BETWEEN ? AND ?']
     if age == '2':
@@ -290,9 +290,9 @@ def _tally(store, roster, d_from, d_to, age='all'):
     ids = sorted(key_of_id)
     for i in range(0, len(ids), 400):
         part = ids[i:i + 400]
-        sql = ('SELECT e.owner_id, e.week, e.fin, r.restr, e.earn FROM entries e JOIN races r ON r.racenum = e.racenum WHERE e.owner_id IN (%s) AND %s'
+        sql = ('SELECT e.owner_id, e.week, e.fin, r.restr, e.earn, e.bps FROM entries e JOIN races r ON r.racenum = e.racenum WHERE e.owner_id IN (%s) AND %s'
                % (','.join('?' * len(part)), ' AND '.join(where)))
-        for oid, wk, fin, restr, earn in db.execute(sql, part + [w0, w1]):
+        for oid, wk, fin, restr, earn, bps in db.execute(sql, part + [w0, w1]):
             day = date_of(store, wk).isoformat()
             seen = set()
             for k in key_of_id[oid]:
@@ -303,6 +303,7 @@ def _tally(store, roster, d_from, d_to, age='all'):
                 a = out[line['member_key']]
                 a['starts'] += 1
                 a['earn'] += earn or 0
+                a['bps'] += bps or 0
                 claim = is_claiming(restr)
                 if claim:
                     a['cs'] += 1
@@ -839,11 +840,11 @@ TOTE_CSS = (
     '.bh h1{font:700 30px/1 var(--disp);text-transform:uppercase;letter-spacing:.05em;margin:0}.bh .sub{color:var(--mute);font-size:13px}'
     '.seg{display:flex;flex-wrap:wrap;gap:4px}.seg a{font:600 13px var(--disp);letter-spacing:.08em;text-transform:uppercase;background:var(--panel);color:var(--mute);border:1px solid var(--line);border-radius:3px;padding:5px 10px;text-decoration:none}'
     '.seg a[aria-current=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}'
-    '.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:760px;font-variant-numeric:tabular-nums}'
+    '.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:900px;font-variant-numeric:tabular-nums}'
     'th{font:600 13px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);text-align:right;padding:10px;border-bottom:2px solid var(--line);white-space:nowrap}'
     'td{padding:11px 10px;text-align:right;border-bottom:1px solid var(--line);font:500 19px var(--disp);letter-spacing:.02em;white-space:nowrap}'
     'th:first-child,td:first-child{text-align:left;padding-left:16px}td+td,th+th{border-left:1px solid var(--line)}'
-    'tr.row{cursor:pointer}tr.row:hover td{background:var(--panel2)}.wcol{color:var(--w)}.pcol{color:var(--pl)}.scol{color:var(--sh)}'
+    'tr.row{cursor:pointer}tr.row:hover td{background:var(--panel2)}.wcol{color:var(--w)}.pcol{color:var(--pl)}.scol{color:var(--sh)}.fcol{color:var(--mute)}'
     'th.wcol,th.pcol,th.scol{box-shadow:inset 0 -4px 0 currentColor}'
     '.rank{font:700 34px/1 var(--disp);color:var(--led);width:34px;display:inline-block}'
     '.who{display:inline-flex;align-items:center;gap:10px;font:600 22px var(--disp);letter-spacing:.03em;text-transform:uppercase}'
@@ -891,7 +892,7 @@ def tote_inner(store, roster, d_from, d_to, rule=None, sort='pts', base=''):
         a = tl.get(RS.norm_key(m['name']), {})
         n = m['starts']
         itm = _pctf(m['wins'] + m['seconds'] + m['thirds'], n)
-        rows.append(dict(name=m['name'], n=n, w=m['wins'], p=m['seconds'], s=m['thirds'], pts=m['total'], itm=itm, earn=int(round(a.get('earn', 0) or 0)),
+        rows.append(dict(name=m['name'], n=n, w=m['wins'], p=m['seconds'], s=m['thirds'], pts=m['total'], itm=itm, earn=int(round(a.get('earn', 0) or 0)), bps=int(round(a.get('bps', 0) or 0)), f4=(a.get('fin') or [0] * 8)[3], f5=(a.get('fin') or [0] * 8)[4],
                          color=WEEK_COLORS[order.index(m['name']) % len(WEEK_COLORS)] if m['name'] in order else WEEK_COLORS[0],
                          weekly=[wk.get(m['name'], 0) for wk in weeks], stables=stables.get(m['name'], 0)))
     key = {'pts': lambda r: (r['pts'], r['w']), 'w': lambda r: (r['w'], r['pts']), 'itm': lambda r: (r['itm'], r['n']), 'earn': lambda r: (r['earn'], r['pts'])}[sort]
@@ -899,10 +900,10 @@ def tote_inner(store, roster, d_from, d_to, rule=None, sort='pts', base=''):
     body = []
     for i, r in enumerate(rows):
         body.append('<tr class="row" tabindex="0" aria-expanded="false"><td><span class="rank">%d</span><span class="who"><span class="silk" style="background:%s"></span>%s</span> <span class="mut">%d stable%s</span></td>'
-                    '<td>%d</td><td class="wcol">%d</td><td class="pcol">%d</td><td class="scol">%d</td><td>%.1f%%</td><td>%.1f%%</td><td>$%s</td><td>%s</td><td class="pts">%s</td></tr>'
-                    % (i + 1, r['color'], _X(r['name']), r['stables'], '' if r['stables'] == 1 else 's', r['n'], r['w'], r['p'], r['s'], _pctf(r['w'], r['n']), r['itm'],
-                       format(r['earn'], ','), _spark(r['weekly'], r['color']), _X('%g' % r['pts'])))
-        body.append('<tr class="exp" hidden><td colspan="10"><div class="cols">'
+                    '<td>%d</td><td class="wcol">%d</td><td class="pcol">%d</td><td class="scol">%d</td><td class="fcol">%d</td><td class="fcol">%d</td><td>%.1f%%</td><td>%.1f%%</td><td>$%s</td><td>%s</td><td>%s</td><td class="pts">%s</td></tr>'
+                    % (i + 1, r['color'], _X(r['name']), r['stables'], '' if r['stables'] == 1 else 's', r['n'], r['w'], r['p'], r['s'], r['f4'], r['f5'], _pctf(r['w'], r['n']), r['itm'],
+                       format(r['earn'], ','), format(r['bps'], ','), _spark(r['weekly'], r['color']), _X('%g' % r['pts'])))
+        body.append('<tr class="exp" hidden><td colspan="13"><div class="cols">'
                     '<div><div class="k">Win / Place / Show</div><div class="stack" role="img" aria-label="%d wins, %d seconds, %d thirds"><i style="width:%.1f%%;background:var(--w)"></i><i style="width:%.1f%%;background:var(--pl)"></i><i style="width:%.1f%%;background:var(--sh)"></i></div>'
                     '<div class="mut" style="margin-top:4px">%d wins, %d seconds, %d thirds from %d starts</div></div>'
                     '<div><div class="k">Place %%</div><div class="v">%.1f%%</div></div><div><div class="k">Show %%</div><div class="v">%.1f%%</div></div>'
@@ -911,8 +912,8 @@ def tote_inner(store, roster, d_from, d_to, rule=None, sort='pts', base=''):
                        _pctf(r['p'], r['n']), _pctf(r['s'], r['n']), format(int(round(r['earn'] / float(r['n']))) if r['n'] else 0, ','), _X('%g' % max(r['weekly']))))
     segs = ''.join('<a href="%ssort=%s" %s>%s</a>' % (base, k, 'aria-current="true"' if k == sort else '', TOTE_SORT_NAMES[k]) for k in TOTE_SORTS)
     sub = '%s to %s, %d &middot; all races &middot; sorted by %s' % (_md(f), _md(t), t.year, TOTE_SORT_NAMES[sort].lower())
-    table = ('<div class="scroll"><table><thead><tr><th>Member</th><th>Starts</th><th class="wcol">Win</th><th class="pcol">Place</th><th class="scol">Show</th>'
-             '<th>Win %</th><th>ITM %</th><th>Earnings</th><th>8 weeks</th><th>Pts</th></tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>') if rows else '<div class="none">No results in these dates yet.</div>'
+    table = ('<div class="scroll"><table><thead><tr><th>Member</th><th>Starts</th><th class="wcol">Win</th><th class="pcol">Place</th><th class="scol">Show</th><th class="fcol">4th</th><th class="fcol">5th</th>'
+             '<th>Win %</th><th>ITM %</th><th>Earnings</th><th title="Breeding points earned">BPs</th><th>8 weeks</th><th>Pts</th></tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>') if rows else '<div class="none">No results in these dates yet.</div>'
     return sub, segs, table
 
 
