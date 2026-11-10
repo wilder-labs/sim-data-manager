@@ -67,7 +67,7 @@ SITE_CSS = (
     '.win .gr{font:700 22px var(--disp);text-align:center;padding:6px 0;border-radius:3px;color:#fff}'
     '.gr.G1{background:#c8362b}.gr.G2{background:#9a6200}.gr.G3{background:#2a5bd7}.gr.Stk{background:#566a62}'
     '.win .h{font:600 22px var(--disp);text-transform:uppercase;letter-spacing:.03em}.win .m{color:var(--mute);font-size:13px}'
-    '.win .p{font:600 22px var(--disp);text-align:right;font-variant-numeric:tabular-nums}'
+    '.win .p{font:600 22px var(--disp);text-align:right;font-variant-numeric:tabular-nums}.win .p small{font:500 12px var(--body);color:var(--mute);letter-spacing:.04em}'
     '.ctl{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}'
     '.ctl label{font:600 13px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}'
     'svg text{font-family:var(--disp);fill:var(--mute)}'
@@ -221,8 +221,45 @@ def stakes_wins(store, roster, d_from, d_to):
     return out
 
 
+def stakes_money(store, roster, d_from, d_to):
+    """Money actually earned in stakes and graded races by each member's stables: the winner's share plus place, show and other money finishes.
+    Returns {member name: dollars}. Stable ownership follows Joined and Left dates, same as stakes_wins."""
+    d0, d1 = P._date(d_from, 'From'), P._date(d_to, 'To')
+    w0, w1 = P.week_of(store, d0), P.week_of(store, d1)
+    db = store.db
+    stables = [dict(s, member_key=s.get('member_key') or RS.norm_key(s['member'])) for s in roster.get('stables', [])]
+    keys = {s['key'] for s in stables}
+    key_of_id = {}
+    for row in db.execute('SELECT id, oname, o15, o12, o10 FROM owners'):
+        for v in row[1:]:
+            k = RS.norm_key(v or '')
+            if k in keys:
+                key_of_id.setdefault(row[0], set()).add(k)
+    lines = {}
+    for s in stables:
+        lines.setdefault(s['key'], []).append(s)
+    money = {}
+    ids = sorted(key_of_id)
+    for i in range(0, len(ids), 400):
+        part = ids[i:i + 400]
+        sql = ('SELECT e.owner_id, e.week, e.earn FROM entries e JOIN races r ON r.racenum = e.racenum '
+               'WHERE e.owner_id IN (%s) AND e.week BETWEEN ? AND ? AND e.earn > 0 AND r.restr IN %s'
+               % (','.join('?' * len(part)), P.STAKES_SQL))
+        for oid, wk, earn in db.execute(sql, part + [w0, w1]):
+            day = P.date_of(store, wk).isoformat()
+            seen = set()
+            for k in key_of_id[oid]:
+                line = next((x for x in lines[k] if (not x['joined'] or x['joined'] <= day) and (not x['left'] or day <= x['left'])), None)
+                if line is None or line['member_key'] in seen:
+                    continue
+                seen.add(line['member_key'])
+                money[line['member']] = money.get(line['member'], 0) + (earn or 0)
+    return money
+
+
 def stakes_inner(store, roster, d_from, d_to, grade, base):
     wins = stakes_wins(store, roster, d_from, d_to)
+    money = stakes_money(store, roster, d_from, d_to)
     names = []
     for m in roster.get('members', []):
         if m['name'] not in names:
@@ -233,21 +270,21 @@ def stakes_inner(store, roster, d_from, d_to, grade, base):
         w = by[n]
         c = lambda g: sum(1 for x in w if x['grade'] == g)
         cls = 'g1' if c('G1') else 'g2' if c('G2') else 'g3' if c('G3') else 'gs'
-        lad.append('<div class="lad %s"><div class="nm">%s%s</div><div class="pips">%s</div><div class="mut" style="margin-top:6px">%d stakes win%s &middot; $%s in purses</div></div>'
+        lad.append('<div class="lad %s"><div class="nm">%s%s</div><div class="pips">%s</div><div class="mut" style="margin-top:6px">%d stakes win%s &middot; $%s earned in stakes</div></div>'
                    % (cls, _silk(_color(roster, n)), _X(n), ''.join('<span class="pip">%s<b>%d</b></span>' % (g, c(g)) for g in ('G1', 'G2', 'G3', 'Stk')),
-                   len(w), '' if len(w) == 1 else 's', format(sum(x['purse'] for x in w), ',')))
+                   len(w), '' if len(w) == 1 else 's', format(int(round(money.get(n, 0))), ',')))
     shown = [w for w in wins if grade == 'All' or w['grade'] == grade][:FEED_MAX]
     feed = []
     for w in shown:
         meta = ' &middot; '.join(x for x in [_X(w['member']) + ' (' + _X(w['stable']) + ')' if w['stable'] and w['stable'] != w['member'] else _X(w['member']),
                                              _X(w['loc']) if w['loc'] and len(w['loc']) <= 24 else '',
                                              ('%g %s' % (w['dist'], _X(w['surf']))).strip() if w['dist'] else _X(w['surf']), _X(w['age']), _X(w['date'])] if x)
-        feed.append('<div class="win"><div class="gr %s">%s</div><div><div class="h">%s</div><div class="m">%s%s</div></div><div class="p">$%s</div></div>'
+        feed.append('<div class="win"><div class="gr %s">%s</div><div><div class="h">%s</div><div class="m">%s%s</div></div><div class="p">$%s<small> purse</small></div></div>'
                     % (_X(w['grade']), _X(w['grade']), _X(w['horse']), _silk(_color(roster, w['member']), True), meta, format(w['purse'], ',')))
     segs = '<div class="seg" role="group" aria-label="Grade">%s</div>' % ''.join('<a href="%sgrade=%s" %s>%s</a>' % (base, g, 'aria-current="true"' if g == grade else '', g) for g in GRADES)
     feed_html = ''.join(feed) or '<div class="none">No wins at this grade in these dates.</div>'
     note = ('<div class="foot" style="padding:12px 16px">Showing the newest %d.</div>' % FEED_MAX) if len(wins) > FEED_MAX and grade == 'All' else ''
-    return 'Stakes Room', 'Every stakes and graded win in the dates, newest first', segs, '<div class="ladder">' + ''.join(lad) + '</div><div class="feed">' + feed_html + '</div>' + note
+    return 'Stakes Room', 'Every stakes and graded win, newest first &middot; cards show money earned in all stakes finishes', segs, '<div class="ladder">' + ''.join(lad) + '</div><div class="feed">' + feed_html + '</div>' + note
 
 
 # ---------------------------------------------------------------- claiming crown

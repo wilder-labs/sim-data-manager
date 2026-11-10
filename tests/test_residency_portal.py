@@ -522,6 +522,24 @@ class Routes(Base):
         self.race('2026-10-18', 'Clm'); db.commit()
         self.pub('sesame', enabled=True)
 
+    def test_stakes_room_counts_money_finishes_not_just_the_purse(self):
+        self.hosted()
+        db = self.st.db
+        db.execute("INSERT INTO horses(hid,hname,sex) VALUES(1,'Big Win','C')")
+        self.race('2026-10-05', 'Clm')
+        # Ann (owner 1): wins a G1 (earns 60,000 of a 100,000 purse), is 3rd in a Stk (5,000), wins a claiming race (ignored), is 6th in a Stk (earns nothing)
+        for day, restr, fin, earn in (('2026-10-12', 'G1', 1, 60000), ('2026-10-13', 'Stk', 3, 5000), ('2026-10-14', 'Clm', 1, 9000), ('2026-10-15', 'Stk', 6, 0)):
+            rn = self.race(day, restr)
+            db.execute('UPDATE races SET purse=100000 WHERE racenum=?', (rn,))
+            db.execute('INSERT INTO entries(racenum,week,hid,owner_id,fin,earn) VALUES(?,?,?,?,?,?)', (rn, wk(day), 1, 1, fin, earn))
+        self.race('2026-10-18', 'Clm'); db.commit()
+        self.pub('sesame', enabled=True)
+        t = self.live(board='stakes', range='this_week')[2].decode()
+        self.assertIn('1 stakes win', t)
+        self.assertIn('$65,000 earned in stakes', t)             # 60,000 + 5,000: the win share and the money finish
+        self.assertNotIn('$100,000 earned', t)                   # not the full purse
+        self.assertIn('$100,000<small> purse</small>', t)        # the win row still shows the race purse, labelled
+
     def test_every_tab_has_real_data_and_the_tabs_across_the_top(self):
         self.site_data()
         names = ('The Tote', 'Claiming Poll', 'Top 10 Poll', 'Stakes Room', 'Claiming Crown', 'Member Cards', 'Week in the Books')
