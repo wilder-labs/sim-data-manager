@@ -908,3 +908,31 @@ def race_form(store, racenum):
     for k in ('hname', 'hid', 'tag', 'sex', 'fin', 'ppos', 'sp', 'odds', 'oname', 'oname15', 'oname12', 'oname10', 'bps', 'earn', 'id'):
         race.pop(k, None)
     return dict(race=race, horses=horses, latest=week_to_date(latest, aw, ad).isoformat())
+
+
+def last_runs(store, site_ids, limit=800):
+    """{site id: last race speed, finish, date, days off, and career starts, wins and earnings} for up to `limit`
+    horses, read only from the database. The site writes ids as 1 + year + 8 digits; older horses are kept with
+    the 0 in the fourth place dropped, so both forms are tried. Horses the database does not know are left out."""
+    import datetime as _dt
+    out = {}
+    db = store.db
+    aw, ad = store.anchor()
+    today = _dt.date.today()
+    for sid in list(dict.fromkeys(str(x) for x in site_ids))[:limit]:
+        if not (sid.isascii() and sid.isdigit() and 6 <= len(sid) <= 12):
+            continue
+        tries = [int(sid[1:])]
+        if len(sid) == 11 and sid[3] == '0':
+            tries.append(int(sid[1:3] + sid[4:]))
+        for hid in tries:
+            last = db.execute('SELECT week, sp, fin FROM entries WHERE hid = ? ORDER BY racenum DESC LIMIT 1', (hid,)).fetchone()
+            if not last:
+                continue
+            tot = db.execute('SELECT COUNT(*) AS n, SUM(CASE WHEN fin = 1 THEN 1 ELSE 0 END) AS w, SUM(earn) AS e FROM entries WHERE hid = ?', (hid,)).fetchone()
+            d = ad + _dt.timedelta(days=int(last['week']) - aw)
+            sp = last['sp']
+            out[sid] = dict(hid=hid, last_speed=(round(sp, 2) if sp else None), last_fin=last['fin'] or None, last_date=d.isoformat(),
+                            daysoff=max(0, (today - d).days), starts=tot['n'], wins=tot['w'] or 0, earn=int(tot['e'] or 0))
+            break
+    return out

@@ -23,11 +23,11 @@ DEFAULT_URL = 'https://github.com/wilder-labs/sim-data-manager/releases/download
 GET_OK = {'/', '/m', '/api/info', '/api/tracks', '/api/date', '/api/race-form', '/api/ping', '/healthz',
           '/top25', '/api/top25',
           '/residency', '/api/residency/status', '/api/residency/roster', '/api/residency/list', '/api/residency/board', '/api/residency/export', '/api/residency/polls', '/api/residency/embed', '/api/residency/live'}           # Top 25 Speeds: read-only lists from files in the program; adding files stays off
-POST_OK = {'/api/search', '/api/owner-changes', '/api/best-speeds', '/api/current-horses', '/api/first-time-starters',
+POST_OK = {'/api/search', '/api/last-runs', '/api/owner-changes', '/api/best-speeds', '/api/current-horses', '/api/first-time-starters',
            '/api/graded-races', '/api/stakes-year', '/api/owner-rankings',
            '/api/residency/upload', '/api/residency/rules', '/api/residency/public'}   # the residency write routes also need a key
 MAX_BODY = 20000                      # a search request is a few hundred bytes
-MAX_BODY_BY_PATH = {'/api/residency/upload': 4 * 1024 * 1024, '/api/residency/rules': 4000, '/api/residency/public': 4000}
+MAX_BODY_BY_PATH = {'/api/last-runs': 16000, '/api/residency/upload': 4 * 1024 * 1024, '/api/residency/rules': 4000, '/api/residency/public': 4000}
 RATE_PER_MIN = 120                    # per visitor address
 QUERY_SECONDS = int(os.environ.get('QUERY_SECONDS', '20'))   # a query running longer than this is stopped
 CACHE_PATHS = {'/api/owner-rankings', '/api/first-time-starters', '/api/stakes-year', '/api/best-speeds', '/api/graded-races'}

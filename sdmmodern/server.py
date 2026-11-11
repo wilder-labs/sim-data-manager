@@ -273,6 +273,12 @@ def make_handler(app):
                     if u.path == '/api/best-speeds':
                         a = json.loads(body)
                         return self._send(S.best_speeds(st, two_yo=bool(a.get('two_yo')), three_yo=bool(a.get('three_yo')), graded=bool(a.get('graded')), min_speed=float(a.get('min_speed') or 0)))
+                    if u.path == '/api/last-runs':           # last race and record for a list of site horse ids; database only
+                        a = json.loads(body)
+                        ids = a.get('site_ids') if isinstance(a, dict) else None
+                        if not isinstance(ids, list):
+                            return self._send({'error': 'Send site_ids as a list.'}, 400)
+                        return self._send(dict(horses=S.last_runs(st, ids)))
                     if u.path == '/api/current-horses':
                         a = json.loads(body)
                         return self._send(S.current_horses(st, a.get('name', ''), exact=bool(a.get('exact', True))))
